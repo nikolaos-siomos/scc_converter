@@ -17,7 +17,6 @@ import pandas as pd
 import glob
 from datetime import datetime as dt
 import xarray as xr
-from lidar_processing import signal
 
 
 def dtfs(dir_meas, cfg):

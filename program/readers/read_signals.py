@@ -57,8 +57,10 @@ def overwrite(info, cfg):
     
     if len(info) > 0:
         # Overwrite in info dataframe the params reported in the input files with the user defined values given in config file
-        keys = ['ch_mode', 'bins', 'laser_pol', 'shots', 'ADC_range', 'ADC_bit',
-                'wave', 'ch_pol', 'resol', 'voltage']
+        keys = ['ch_id', 'ch_mode', 'bins', 'laser_pol', 'shots', 
+                'ADC_range', 'ADC_bit', 'wave', 'ch_pol', 'resol', 
+                'voltage', 'dead_time', 'zero_bin', 'full_overlap', 
+                'bgd_start', 'bgd_end', 'signal_type']
         
         for key in keys:
             if key in cfg.channels.columns:

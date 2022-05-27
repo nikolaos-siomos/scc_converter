@@ -20,12 +20,6 @@ class config():
             self.lidar = read_section(parser['Lidar'], dtype = object, squeeze = True)
         else:
             self.lidar = None
-                
-# Trimming
-        if parser.has_section('Trimming'):
-            self.ch_map = comma_split(parser['Trimming']['ch_map'], object)        
-        else:
-            self.ch_map = None
 
 # Channels
         if parser.has_section('Channels'):

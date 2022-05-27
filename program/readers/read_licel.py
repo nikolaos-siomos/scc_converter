@@ -16,8 +16,6 @@ import pandas as pd
 import glob
 from datetime import datetime as dt
 import xarray as xr
-from lidar_processing import signal
-import timeit,sys
 
 # Read measurement
 def dtfs(cfg, dir_meas, meas_type):
@@ -37,8 +35,7 @@ def dtfs(cfg, dir_meas, meas_type):
     else:
         
         mfiles = glob.glob(os.path.join(dir_meas,m_code + '*'))
-    
-    
+        
         # for existing directory and files inside it, starts the reading of files     
         if len(mfiles) > 0:
             print(f'-- Folder contains {len(mfiles)} file(s)!')
@@ -47,11 +44,12 @@ def dtfs(cfg, dir_meas, meas_type):
             sep = find_sep(buffer)
             
             # Reading the licel file metadatas (header) - only for the first file
-            cfg = read_metas(cfg, buffer = buffer, sep = sep, meas_type = meas_type)
+            cfg = read_geodata(cfg, buffer = buffer, sep = sep)
             info = read_header(buffer, sep)
             
             # Creating empty signal and time arrays
-            time_arr = np.nan*np.zeros(len(mfiles), dtype = object)
+            start_time_arr = np.nan*np.zeros(len(mfiles), dtype = object)
+            end_time_arr = np.nan*np.zeros(len(mfiles), dtype = object)
             sig_arr = np.nan*np.zeros((len(mfiles), info.shape[0], int(info.bins.max())), dtype = float)
 
             # Iterate over the files
@@ -60,24 +58,33 @@ def dtfs(cfg, dir_meas, meas_type):
                 buffer = read_buffer(mfiles[k])
 
                 sep = find_sep(buffer)
+                
+                stime, etime = read_time(buffer = buffer, sep = sep, meas_type = meas_type)
 
                 sig = read_body(buffer = buffer, info = info, sep = sep)
 
-                # Store signal and Start time
+                # Store signal, start and end time
                 sig_arr[k, :, :] = sig
 
-                time_arr[k] = cfg.lidar[f'{meas_type}_start_time']
-             
+                start_time_arr[k] = stime
+
+                end_time_arr[k] = etime
+
             channels = info.index.values
             bins_arr = np.arange(1., info.bins.max() + 1.)
             
             sig_raw = xr.DataArray(sig_arr, 
-                                   coords=[time_arr, channels, bins_arr], #range_sig
+                                   coords=[start_time_arr, channels, bins_arr], #range_sig
                                    dims=['time', 'channel', 'bins']) #'range' 
                         
             # Sort by time
             sig_raw = sig_raw.sortby('time')
-
+            start_time_arr = np.sort(start_time_arr)
+            end_time_arr = np.sort(end_time_arr)
+            
+            cfg.lidar[f'{meas_type}_start_time'] = start_time_arr[0]
+            cfg.lidar[f'{meas_type}_end_time'] = end_time_arr[-1]
+            cfg.lidar[f'{meas_type}_temporal_resolution'] = end_time_arr[0] - start_time_arr[0]
         else:
             print('---- Warning! Folder empty \n'+\
                   f'---> !! Skip reading measurement files from folder {dir_meas}')  
@@ -123,7 +130,7 @@ def find_sep(buffer):
     
     return(sep)
 
-def read_metas(cfg, buffer, sep, meas_type):
+def read_geodata(cfg, buffer, sep):
 
     # Now i points to the start of search_sequence, AKA end of header
     header_bytes = buffer[0:sep-1]
@@ -135,17 +142,6 @@ def read_metas(cfg, buffer, sep, meas_type):
 
     cfg.lidar['location'] = metadata[0]
 
-    start_date = metadata[1]
-    start_time = metadata[2]
-    end_date = metadata[3]
-    end_time = metadata[4]
-
-    stime = dt.strptime(start_date + ' ' + start_time, "%d/%m/%Y %H:%M:%S") # start meas
-    etime = dt.strptime(end_date + ' ' + end_time, "%d/%m/%Y %H:%M:%S") # start meas
-
-    cfg.lidar['temporal_resolution'] = etime - stime
-    cfg.lidar[f'{meas_type}_start_time'] = stime
-    
     cfg.lidar['altitude'] = float(metadata[5])    
     cfg.lidar['latitude'] = float(metadata[6])
     cfg.lidar['longitude'] = float(metadata[7])
@@ -155,8 +151,28 @@ def read_metas(cfg, buffer, sep, meas_type):
 
     if len(metadata) > 9:
         cfg.lidar['azimuth'] = float(metadata[9])
-    
+
     return(cfg)
+
+def read_time(buffer, sep, meas_type):
+
+    # Now i points to the start of search_sequence, AKA end of header
+    header_bytes = buffer[0:sep-1]
+    
+    # Convert header to text, parse metadata
+    header = str(header_bytes, encoding="utf-8").split("\r\n")
+
+    metadata = header[1].split()
+
+    start_date = metadata[1]
+    start_time = metadata[2]
+    end_date = metadata[3]
+    end_time = metadata[4]
+
+    stime = dt.strptime(start_date + ' ' + start_time, "%d/%m/%Y %H:%M:%S") # start meas
+    etime = dt.strptime(end_date + ' ' + end_time, "%d/%m/%Y %H:%M:%S") # start meas
+        
+    return(stime, etime)
 
 def read_header(buffer, sep):
 

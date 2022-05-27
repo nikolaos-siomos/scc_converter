@@ -7,7 +7,7 @@ import warnings, os,sys
 from readers.read_config import config
 from readers.parse_config import parse_config
 from readers.read_signals import read_signals
-from molecular.short_molec import short_molec
+# from molecular.short_molec import short_molec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,76 +32,80 @@ sig_raw_d, info, cfg = read_signals(meas_type = 'dark', cfg = cfg, finput = args
 # A.2)Normal
 sig_raw, info, cfg = read_signals(meas_type = 'normal', cfg = cfg, finput = args['parent_folder'])
 
-ds = nc.Dataset(r'./temp.nc',mode='w')
+nc_path = os.path.join(args['results_folder'],'results')
+
+start_date = sig_raw.time.dt.date.values[0].strftime('%Y%m%d')
+
+stop_date = sig_raw.time.dt.date.values[0].strftime('%Y%m%d')
+
+meas_ID = f"{start_date}{cfg.lidar['lr_id']}{args['dataset_number']}"
+
+ds = nc.Dataset(os.path.join(f"{args['results_folder']}",f'{meas_ID}.nc'),mode='w')
+
 ds.createDimension('time', sig_raw.time.size)
 ds.createDimension('channels', sig_raw.channel.size)
-ds.createDimension('points', sig_raw.bins.size)  #16382
+ds.createDimension('points', sig_raw.bins.size)
+
 time_bck = ds.createDimension('time_bck', 1)
 nb_of_time_scales = ds.createDimension('nb_of_time_scales', 1)
 scan_angles = ds.createDimension('scan_angles', 1)
-ds.Measurement_ID=year+month+day+'the' +hour+minute
-ds.RawData_Start_Date = year+month+day;
-ds.RawData_Start_Time_UT = hour+minute+second;
-ds.RawData_Stop_Time_UT = hour_stop+minute_stop+second_stop;
-ds.RawBck_Start_Date = year+month+day;
-ds.RawBck_Start_Time_UT = hour_dr_start+minute_dr_start+second_dr_start;
-ds.RawBck_Stop_Time_UT = hour_dr_stop+minute_dr_stop+second_dr_stop;
-# ds.Measurement_ID='20220113th01'
-# ds.RawData_Start_Date = "20220113";
-# ds.RawData_Start_Time_UT = "163458";
-# ds.RawData_Stop_Time_UT = "172629";
-# ds.RawBck_Start_Date = "20220113";
-# ds.RawBck_Start_Time_UT = "165259";
-# ds.RawBck_Stop_Time_UT = "165455";
-ds.Sounding_File_Name = "rs_20220411the02.nc";      
 
-#02:day & 01:night20
+ds.Measurement_ID = meas_ID
+ds.RawData_Start_Date = cfg.lidar.normal_start_time.strftime('%Y%m%d');
+ds.RawData_Start_Time_UT = cfg.lidar.normal_start_time.strftime('%H%M%S');
+ds.RawData_Stop_Time_UT = cfg.lidar.normal_end_time.strftime('%H%M%S');
+ds.RawBck_Start_Date = cfg.lidar.dark_start_time.strftime('%Y%m%d');
+ds.RawBck_Start_Time_UT = cfg.lidar.dark_start_time.strftime('%H%M%S');
+ds.RawBck_Stop_Time_UT = cfg.lidar.dark_end_time.strftime('%H%M%S');
 
+# ds.Sounding_File_Name = "rs_20220411the02.nc";      
 
-Background_High = ds.createVariable('Background_High',np.double, ('channels',))
-Background_Low = ds.createVariable('Background_Low',np.double, ('channels',))
-Background_Profile = ds.createVariable('Background_Profile',np.double, ( 'time_bck','channels', 'points',))
-channel_ID =ds.createVariable('channel_ID',np.int32, ('channels',))
-DAQ_Range =ds.createVariable('DAQ_Range',np.double, ('channels',))
-#First_Signal_Rangebin =ds.createVariable('First_Signal_Rangebin',np.int32, ('channels',))
-id_timescale =ds.createVariable('id_timescale',np.int32, ('channels',))
-Laser_Pointing_Angle=ds.createVariable('Laser_Pointing_Angle',np.double, ('scan_angles',))
-Laser_Pointing_Angle_of_Profiles=ds.createVariable('Laser_Pointing_Angle_of_Profiles',np.int32, ('time', 'nb_of_time_scales',))
-#aser_Shots=ds.createVariable('Laser_Shots',np.int32, ('channels',))
+channel_ID = ds.createVariable('channel_ID', np.int32, ('channels',))
+DAQ_Range = ds.createVariable('DAQ_Range', np.double, ('channels',))
+id_timescale = ds.createVariable('id_timescale',np.int32, ('channels',))
+Laser_Pointing_Angle = ds.createVariable('Laser_Pointing_Angle', np.double, ('scan_angles',))
+Laser_Pointing_Angle_of_Profiles = ds.createVariable('Laser_Pointing_Angle_of_Profiles', np.int32, ('time', 'nb_of_time_scales',))
 Laser_Shots=ds.createVariable('Laser_Shots',np.int32, ('time','channels',))
 LR_Input=ds.createVariable('LR_Input',np.int32, ('channels',))
-Molecular_Calc=ds.createVariable('Molecular_Calc',np.int32)
-Pressure_at_Lidar_Station=ds.createVariable('Pressure_at_Lidar_Station',np.double)
-Raw_Lidar_Data=ds.createVariable('Raw_Lidar_Data',np.double, ('time', 'channels', 'points',))
-Raw_Bck_Start_Time=ds.createVariable('Raw_Bck_Start_Time',np.int32, ('time_bck','nb_of_time_scales',))
-Raw_Bck_Stop_Time=ds.createVariable('Raw_Bck_Stop_Time',np.int32, ('time_bck','nb_of_time_scales',))
-Raw_Data_Start_Time=ds.createVariable('Raw_Data_Start_Time',np.int32, ('time','nb_of_time_scales',))
-Raw_Data_Stop_Time=ds.createVariable('Raw_Data_Stop_Time',np.int32, ('time','nb_of_time_scales',))
-Temperature_at_Lidar_Station=ds.createVariable('Temperature_at_Lidar_Station',np.double)
 
-d=np.mean(sig_raw_d[:,:,0:16380],axis=0)
-a=len(sig_raw[:,0,0])
-b=len(sig_raw[:,0,0])
-Raw_Lidar_Data[:,:,:]=sig_raw[:,:,0:16380]
-#Raw_Lidar_Data[:,:,:]=sig_raw[:,:,:]
-Background_High[:]=30000
-Background_Low[:]=28000
-# #Background_Profile[:]=sig_raw_d[0,:,:].values
-Background_Profile[:]=d.values
+Background_High = ds.createVariable('Background_High', np.double, ('channels',))
+Background_Low = ds.createVariable('Background_Low', np.double, ('channels',))
+Background_Profile = ds.createVariable('Background_Profile', np.double, ('time_bck','channels', 'points',))
 
-#====== Night Channels ======#
-channel_ID[:]=[1721,1722,1723,1724,1698,1699,1700,1719,1717,1720,1718]
 
-#====== Day Channels ========#
-#channel_ID[:]=[1723,1724,1721,1722,1698,1699,1700]
+Molecular_Calc = ds.createVariable('Molecular_Calc',np.int32)
 
-DAQ_Range[:]=100
+Molecular_Calc[:] = args['molec_calc']
+
+if args['molec_calc'] == 4:
+    Pressure_at_Lidar_Station = ds.createVariable('Pressure_at_Lidar_Station',np.double)
+    Temperature_at_Lidar_Station = ds.createVariable('Temperature_at_Lidar_Station',np.double)
+
+    Pressure_at_Lidar_Station[:] = args['ground_pressure']
+    Temperature_at_Lidar_Station[:] = args['ground_temperature']
+if args['molec_calc'] == 1:
+    ds.Sounding_File_Name = args['radiosonde_file'];      
+
+Raw_Lidar_Data = ds.createVariable('Raw_Lidar_Data', np.double, ('time', 'channels', 'points',))
+Raw_Data_Start_Time = ds.createVariable('Raw_Data_Start_Time', np.int32, ('time', 'nb_of_time_scales',))
+Raw_Data_Stop_Time = ds.createVariable('Raw_Data_Stop_Time', np.int32, ('time', 'nb_of_time_scales',))
+
+Raw_Lidar_Data[:,:,:] = sig_raw.values
+Raw_Bck_Start_Time = ds.createVariable('Raw_Bck_Start_Time', np.int32, ('time_bck','nb_of_time_scales',))
+Raw_Bck_Stop_Time = ds.createVariable('Raw_Bck_Stop_Time', np.int32, ('time_bck','nb_of_time_scales',))
+
+Background_High[:] = info.bgd_end.values
+Background_Low[:] = info.bgd_start.values
+Background_Profile[:] = sig_raw_d.values
+
+channel_ID[:] = info.ch_id.values
+
+DAQ_Range[:] = info.ADC_range
 #First_Signal_Rangebin[:]=[1,4,1,4,-5,3,-6]
-Laser_Pointing_Angle[:]=0.02
-Laser_Pointing_Angle_of_Profiles[:]=0.0
+Laser_Pointing_Angle[:] = cfg.lidar.zenith
+Laser_Pointing_Angle_of_Profiles[:] = 0
 Laser_Shots[:]= info_val.shots[0]                        #info_val.shots
-LR_Input[:]=1
-Molecular_Calc[:]=1
+
 id_timescale[:]=0
 Raw_Bck_Start_Time[:]=0.0
 Raw_Data_Start_Time[:]=np.arange(0,29*a, 29)
@@ -121,7 +125,7 @@ sys.exit(0)
 # C) Calculation of the molecular profiles
 #------------------------------------------------------------
 # C.1) Molecular properties
-molec_map = read_maps.molecular(maps_dir, 'molecular.ini')
-sig, molec_pack, molec_map = short_molec(sig_raw.copy(), cfg, molec_map) 
+# molec_map = read_maps.molecular(maps_dir, 'molecular.ini')
+# sig, molec_pack, molec_map = short_molec(sig_raw.copy(), cfg, molec_map) 
 
 
