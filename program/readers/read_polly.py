@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import os
 import xarray as xr
-from readers.read_thelisys_ascii import raw_to_config
 
 
 def dtfs(dir_meas, cfg, cal_angle=0.):

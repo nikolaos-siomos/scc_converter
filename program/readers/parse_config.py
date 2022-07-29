@@ -10,6 +10,9 @@ import sys
 
 def parse_config():
         
+    """Collects the information included as commandline arguments. 
+    Current mandatory arguments: --parent_folder [-f]"""
+    
     parser = argparse.ArgumentParser(
     	description='arguments ')
     
@@ -29,10 +32,6 @@ def parse_config():
                         type=str, nargs='+', 
                         help='The path to the configuration file that contains the necessary metadata. This optional argument can be used if the settings folder must be placed out of the parent_folder (default)')            
 
-    parser.add_argument('-d', '--dataset_number', metavar='dataset_number', 
-                        type=str, nargs='+', 
-                        help='Ascending number of the datasets within the current date. Usefull if more than one datasets exist for the same date. Defaults to 00')            
-
     parser.add_argument('-m', '--molec_calc', metavar='molec_calc', 
                         type=str, nargs='+', 
                         help='Calculation method of the molecular atmosphere. Use 4 to use the US Standard Atmosphere 1976 or 1 if a radiosonde or model file is provided. Defaults to 4')            
@@ -49,11 +48,16 @@ def parse_config():
                         type=str, nargs='+', 
                         help='The atmospheric temperature in the lidar station in K. Defaults to 293.15 K')            
 
+    parser.add_argument('-n', '--files_per_sector', metavar='files_per_sector', 
+                        type=int, nargs='+', 
+                        help='The number of telecover files per sector. If this values is provided for a telecover measurement all telecover measurements must be placed into the telecover folder inside the parent folder')            
+
+
     args = vars(parser.parse_args())
     
     mandatory_args = ['parent_folder']
 
-    scalar_args = ['parent_folder','results_folder','plots_folder','config_file','dataset_number', 'molec_calc', 'ground_pressure', 'ground_temperature']
+    scalar_args = ['parent_folder','results_folder','plots_folder','config_file', 'molec_calc', 'ground_pressure', 'ground_temperature', 'files_per_sector']
     
     mandatory_args_abr = ['-f']
     
@@ -71,11 +75,12 @@ def parse_config():
                 args[scalar_args[i]] = args[scalar_args[i]][0]    
 
     optional_args = ['results_folder','plots_folder','config_file',
-                     'dataset_number', 'molec_calc', 'ground_pressure', 'ground_temperature']
+                     'molec_calc', 'ground_pressure', 'ground_temperature',
+                     'files_per_sector']
     default_values = [os.path.join(args['parent_folder'],'results'), 
                       os.path.join(args['parent_folder'],'plots'),
                       os.path.join(args['parent_folder'],'config_file.ini'),
-                      '00', 4, 1013., 293.15]
+                      4, 1013., 293.15, None]
     
     print("-------------------------------------------------------------------")
     print("-- Warning: The following default values have been used!")
