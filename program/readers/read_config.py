@@ -24,6 +24,7 @@ class config():
 # Channels
         if parser.has_section('Channels'):
             self.channels = read_section(parser['Channels'], dtype = object)
+            self.channels[self.channels == '_'] = np.nan
         else:
             self.channels = None
 
@@ -35,7 +36,6 @@ def read_section(section, dtype=object, skip_vars=[], squeeze = False):
     map_info = []
 
     for key in section:
-        print(key)
         if key not in skip_vars:
             arr = [i.strip() for i in re.split(',', section[key]) if i !='']
             if len(arr) > 0:

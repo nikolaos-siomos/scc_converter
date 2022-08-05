@@ -14,14 +14,16 @@ def get_meas_type(path):
 
     if 'rayleigh' in list_dirs: 
         meas_type.append('rayleigh')
+
     if 'telecover' in list_dirs:
         meas_type.append('telecover')
-    if ('calibration_plus' and 'calibration_minus' in list_dirs) or 'calibration' in list_dirs:
+
+    if 'calibration' in list_dirs:
         meas_type.append('calibration')
+
     if 'dark' in list_dirs:
         meas_type.append('dark')
-    else:
-        print('-- Warning: No dark folder detected. The generated files will be compatible with the QA software!')
+    
     if len(meas_type) == 0:
         sys.exit('-- Error: None of the expected folders were detected in the parent folder. Please use at least one of the following: dark, rayleigh, telecover, calibration or calibration_plus and calibration_minus')
                 
@@ -36,7 +38,6 @@ def check_all_dirs(path, files_per_sector):
     check_rayleigh(path)
     check_telecover(path, files_per_sector)
     check_calibration(path)
-    check_dark(path)
     
     print('-- No problems detected!')
 
@@ -49,13 +50,21 @@ def check_rayleigh(path):
     
     path_ray = os.path.join(path,'rayleigh')
     
-    if os.path.exists(path_ray):
-        list_dirs = [d for d in os.listdir(path_ray) if os.path.isdir(os.path.join(path_ray,d))]
+    allowed_folders = ['dark', 'normal']
 
-        if len(list_dirs) > 0:
-            sys.exit('-- Error: At least one folder was detected inside the ' +
-                     'rayleigh directory. Please ensure that only raw files '+
-                     'are included inside')
+    list_dirs = [d for d in os.listdir(path_ray) 
+                 if os.path.isdir(os.path.join(path_ray,d))]
+
+    if 'normal' not in list_dirs:
+        sys.exit('-- Error: The normal folder was not detected in the '+
+                 'rayleigh folder. Please provide it!')
+    
+    if 'dark' not in list_dirs:
+        print('-- Warning: No dark folder detected in the rayleigh folder. '+
+              'The generated rayleigh files will not be compatible with ATLAS!')
+
+    if any(dir_i not in allowed_folders for dir_i in list_dirs):
+        sys.exit(f'-- Error: The ./rayleigh folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
             
     return()
 
@@ -66,76 +75,95 @@ def check_telecover(path, files_per_sector):
     
     path_tlc = os.path.join(path,'telecover')
     
-    if os.path.exists(path_tlc):
-        list_dirs = [d for d in os.listdir(path_tlc) if os.path.isdir(os.path.join(path_tlc,d))]
+    allowed_folders = ['dark', 'sectors']
 
-        if files_per_sector:
-            if len(list_dirs) > 0:
-                sys.exit('-- Error: At least one folder was detected inside the ' +
-                         'telecover directory. Please ensure that only raw files '+
-                         'are included inside')
-        else:
-            if len(list_dirs) != 2 and len(list_dirs) != 4 and len(list_dirs) != 6:
-                sys.exit('-- Error: The number of folders does not correspond to '+
-                         'one of the following: (2) inner/outer ring telecover, '+
-                         '(4): 4 sector telecover, (6) combination of the former')
-            elif len(list_dirs) == 2:
-                if 'inner' not in list_dirs or 'outer' not in list_dirs:
-                    sys.exit('-- Error: The 2 folder structure inside the '+
-                             'telecover folder is not correct. Please ensure '+
-                             'that the following folders are provided: '+
-                             'inner, outer')                       
-            elif len(list_dirs) == 4:
-                if 'north' not in list_dirs or 'east' not in list_dirs or \
-                    'south' not in list_dirs or 'west' not in list_dirs:
-                        sys.exit('-- Error: The 4 folder structure inside the '+
-                                 'telecover folder is not correct. Please ensure '+
-                                 'that the following folders are provided: '+
-                                 'north, east, south, west')                    
+    allowed_sfolders = ['north', 'east', 'south', 'west', 'inner', 'outer']
+    
+    list_dirs = [d for d in os.listdir(path_tlc) 
+                 if os.path.isdir(os.path.join(path_tlc,d))]
 
-            elif len(list_dirs) == 6:
-                if 'north' not in list_dirs or 'east' not in list_dirs or \
-                    'south' not in list_dirs or 'west' not in list_dirs or \
-                        'inner' not in list_dirs or 'outer' not in list_dirs:
-                        sys.exit('-- Error: The 6 folder structure inside the '+
-                                 'telecover folder is not correct. Please ensure '+
-                                 'that the following folders are provided: '+
-                                 'north, east, south, west, inner, outer')              
+    if 'sectors' not in list_dirs:
+        sys.exit('-- Error: The sectors folder was not detected in the '+
+                 'telecover folder. Please provide it!')
+
+    if 'dark' not in list_dirs:
+        print('-- Warning: No dark folder detected in the rayleigh folder. '+
+              'The generated telecover files will not be compatible with ATLAS!')
+
+    if any(dir_i not in allowed_folders for dir_i in list_dirs):
+        sys.exit(f'-- Error: The ./telecover folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
+          
+    if files_per_sector:
+        
+        if 'sectors' not in list_dirs:
+            sys.exit('-- Error: The ./telecover/sectors folder was not detected '+
+                     'in the telecover folder. All sector files must be '+
+                     'provide in this folder when the files_per_sector '+
+                     'argument is used!')
+            
+    else:
+
+        path_sec = os.path.join(path,'telecover','sectors')
+
+        
+        list_sdirs = [d for d in os.listdir(path_sec) 
+                     if os.path.isdir(os.path.join(path_sec,d))]
+        print(list_sdirs)
+
+        if 'north' not in list_sdirs and 'east' not in list_sdirs and \
+            'south' not in list_sdirs and 'west' not in list_sdirs and \
+                'inner' not in list_sdirs and 'outer' not in list_sdirs:
+                
+            sys.exit('-- Error: No sector folders were detected in the ' +
+                     './telecover/sectors folder. Please either provide ' +
+                     'north east south west and/or inner outer folders ' +
+                     'or provide the files_per_sector argument as: '+
+                     '-n <number_of_files_per sector>')
+
+        if ('north' not in list_sdirs or 'east' not in list_sdirs or \
+            'south' not in list_sdirs or 'west' not in list_sdirs) and \
+                ('inner' not in list_sdirs or 'outer' in list_sdirs):
+        
+            sys.exit('-- Error: No complete set is provided in the ' +
+                     'in ./telecover/sectors folder. Please provide either '+
+                     'all of north east south west or both of '+
+                     'inner outer folders') 
+            
+        if any(dir_i not in allowed_folders for dir_i in list_dirs):
+            sys.exit(f'-- Error: The ./telecover/sectors folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
+          
+ 
+  
     return()
 
 def check_calibration(path):
 
-    """Ensures that the telecover folder is properly set, otherwise it raises 
+    """Ensures that the calibration folder is properly set, otherwise it raises 
     an error """
     
-    folders = ['calibration', 'calibration_minus', 'calibration_plus']
+    path_clb = os.path.join(path, 'calibration')
     
-    for folder in folders:
-        path_clb = os.path.join(path, folder)
+    allowed_folders = ['dark', 'static', '+45','-45']
     
-        if os.path.exists(path_clb):
-            list_dirs = [d for d in os.listdir(path_clb) if os.path.isdir(os.path.join(path_clb,d))]
-    
-            if len(list_dirs) > 0:
-                sys.exit('-- Error: At least one folder was detected inside the ' +
-                         f'{folder} directory. Please ensure that only raw files '+
-                         'are included inside')
+    list_dirs = [d for d in os.listdir(path_clb) 
+                 if os.path.isdir(os.path.join(path_clb,d))]
 
-    return()
-
-def check_dark(path):
-
-    """Ensures that the dark folder is properly set, otherwise it raises 
-    an error """
+    if ('-45' not in list_dirs and '+45' not in list_dirs) \
+        and 'static' not in list_dirs:
+        sys.exit('-- Error: None of the expected folders were detected in the calibration folder. Please provide the -45 and +45 folders for a D90 calibration or the static folder for a calibration without rotation')
     
-    path_drk = os.path.join(path,'dark')
-    
-    if os.path.exists(path_drk):
-        list_dirs = [d for d in os.listdir(path_drk) if os.path.isdir(os.path.join(path_drk,d))]
+    if ('-45' not in list_dirs or '+45' not in list_dirs) \
+        and 'static' not in list_dirs:
+        sys.exit('-- Error: Only one of the -45 and +45 folders was provided for the D90 calibration. Please include both folders')
 
-        if os.path.exists(path_drk) and len(list_dirs) > 0:
-            sys.exit('-- Error: At least one folder was detected inside the ' +
-                     'dark directory. Please ensure that only raw files '+
-                     'are included inside')
+    if ('-45' in list_dirs or '+45' in list_dirs) \
+        and 'static' in list_dirs:
+        sys.exit('-- Error: Folders for more that one calibration technique were provided. Please keep either the -45 and +45 folders for a D90 calibration or the static folder for a calibration without rotation')
+ 
+    if not 'dark' in list_dirs:
+        print('-- Warning: No dark folder detected for the polarization calibration. The generated files will not be compatible with the ATLAS software!')
+
+    if any(dir_i not in allowed_folders for dir_i in list_dirs):
+        sys.exit(f'-- Error: The ./calibration folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
 
     return()

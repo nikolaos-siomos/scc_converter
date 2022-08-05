@@ -6,96 +6,74 @@ import numpy as np
 from readers import read_licel, read_polly
 import xarray as xr
 
-def rayleigh(cfg, finput, cal_angle = 0, files_per_sector = None):
+def rayleigh(finput, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
     are always mV for analog and counts for photon channels"""
     
-    #Define the format of the signal files - Defaults to licel
-    if 'file_format' in cfg.lidar.index:
-        file_format = cfg.lidar.file_format
-    else:
-        file_format = 'licel'
-        print('-- Warning: The default file_format licel was assumed. Please make sure this is what you really want.')
-
-    if file_format not in ['licel', 'polly_xt']:
-        sys.exit('-- Error: file_format field not recognized. Please revise the settings file and use one of: polly_xt, licel')
-
     # Reading
     print('-----------------------------------------')
     print('Start reading Rayleigh signals...')
     print('-----------------------------------------')
     print('-- Reading Rayleigh measurement files!')
     
-    path = os.path.join(finput, 'rayleigh')        
+    path = os.path.join(finput, 'normal')        
 
     # Select reader based on the file format
     if file_format == 'polly_xt':
+        sys.exit('--Error: PollyXT reading routines are not yet ready!')
      # In case of Polly define the cal_angle  
-        sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-            read_polly.dtfs(path, cfg, cal_angle)
+        # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+        #     read_polly.dtfs(path, cfg, cal_angle)
             
     elif file_format == 'licel':
-        cfg, start_time, end_time, sig, shots, folder =\
-            read_licel.dtfs(cfg, dir_meas = path)
+        lidar_info, channel_info, start_time, end_time, sig, shots, folder =\
+            read_licel.dtfs(dir_meas = path, mcode = mcode)
         
-        cfg.lidar['start_time'] = start_time[0]
-        cfg.lidar['end_time'] = end_time[-1]
-        cfg.lidar['temporal_resolution'] = end_time[0] - start_time[0]
+        lidar_info['start_time'] = start_time[0]
+        lidar_info['end_time'] = end_time[-1]
+        lidar_info['temporal_resolution'] = end_time[0] - start_time[0]
         
     print('Reading Rayleigh signals complete!')
     print('-----------------------------------------')
     print('')
 
-    # Convert analog channel units to mV (applicable mainly to licel)   
-    sig = unit_conv_bits_to_mV(cfg, signal = sig.copy(), shots = shots)
-        
-    return(cfg, sig, shots)
+    return(sig, shots, lidar_info, channel_info)
 
-def telecover(cfg, finput, cal_angle = 0, files_per_sector = None):
+def telecover(finput, mcode, file_format, files_per_sector = None):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
     are always mV for analog and counts for photon channels"""
     
-    #Define the format of the signal files - Defaults to licel
-    if 'file_format' in cfg.lidar.index:
-        file_format = cfg.lidar.file_format
-    else:
-        file_format = 'licel'
-        print('-- Warning: The default file_format licel was assumed. Please make sure this is what you really want.')
-
-    if file_format not in ['licel', 'polly_xt']:
-        sys.exit('-- Error: file_format field not recognized. Please revise the settings file and use one of: polly_xt, licel')
-
-    
     # Reading
     print('-----------------------------------------')
-    print(f'Start reading telecover signals...')
+    print('Start reading telecover signals...')
     print('-----------------------------------------')
-    print(f'-- Reading telecover measurement files!')
+    print('-- Reading telecover measurement files!')
     
     sig_sec = []
     sector_sec = []
     shots_sec = []
     if not files_per_sector:
         for sector in ['north', 'east', 'south', 'west']:
-            path = os.path.join(finput, 'telecover', sector)
+            path = os.path.join(finput, 'sectors', sector)
             print(f'-- Reading {sector} sector..')           
             # Select reader based on the file format
             if file_format == 'polly_xt':
              # In case of Polly define the cal_angle  
-                sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-                    read_polly.dtfs(path, cfg, cal_angle)
+                # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+                #     read_polly.dtfs(path, cfg, cal_angle)
+                sys.exit('--Error: PollyXT reading routines are not yet ready!')
                     
             if file_format == 'licel':
-                cfg, start_time, end_time, sig, shots, folder =\
-                    read_licel.dtfs(cfg, dir_meas = path)
+                lidar_info, channel_info, start_time, end_time, sig, shots, folder =\
+                    read_licel.dtfs(dir_meas = path, mcode = mcode)
                 
-                cfg.lidar['start_time'] = start_time[0]
-                cfg.lidar['end_time'] = end_time[-1]
-                cfg.lidar['temporal_resolution'] = end_time[0] - start_time[0]
+                lidar_info['start_time'] = start_time[0]
+                lidar_info['end_time'] = end_time[-1]
+                lidar_info['temporal_resolution'] = end_time[0] - start_time[0]
                     
                 sector = folder_to_sector(folder)
             sig_sec.append(sig)
@@ -107,92 +85,123 @@ def telecover(cfg, finput, cal_angle = 0, files_per_sector = None):
         sector = xr.concat(sector_sec, dim = 'time').sortby('time')
         
     else:
-        path = os.path.join(finput, 'telecover')        
+        path = os.path.join(finput, 'sectors')        
         
         # Select reader based on the file format
         if file_format == 'polly_xt':
          # In case of Polly define the cal_angle  
-            sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-                read_polly.dtfs(path, cfg, cal_angle)
+            # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+            #     read_polly.dtfs(path, cfg, cal_angle)
+            sys.exit('--Error: PollyXT reading routines are not yet ready!')
             
         if file_format == 'licel':
-            cfg, start_time, end_time, sig, shots, folder =\
-                read_licel.dtfs(cfg, dir_meas = path)
+            lidar_info, channel_info, start_time, end_time, sig, shots, folder =\
+                read_licel.dtfs(dir_meas = path, mcode = mcode)
                 
-            cfg.lidar['start_time'] = start_time[0]
-            cfg.lidar['end_time'] = end_time[-1]
-            cfg.lidar['temporal_resolution'] = end_time[0] - start_time[0]
+            lidar_info['start_time'] = start_time[0]
+            lidar_info['end_time'] = end_time[-1]
+            lidar_info['temporal_resolution'] = end_time[0] - start_time[0]
                 
         sector = time_to_sector(folder, files_per_sector)
 
-    print(f'Reading telecover signals complete!')
+    print('Reading telecover signals complete!')
     print('-----------------------------------------')
     print('')
 
-    # Convert analog channel units to mV (applicable mainly to licel)   
-    sig = unit_conv_bits_to_mV(cfg, signal = sig.copy(), shots = shots)
-        
-    return(cfg, sig, shots, sector)
+    return(sig, shots, sector, lidar_info, channel_info)
 
-def dark(cfg, finput, cal_angle = 0, files_per_sector = None):
+def calibration(finput, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
     are always mV for analog and counts for photon channels"""
     
-    #Define the format of the signal files - Defaults to licel
-    if 'file_format' in cfg.lidar.index:
-        file_format = cfg.lidar.file_format
-    else:
-        file_format = 'licel'
-        print('-- Warning: The default file_format licel was assumed. Please make sure this is what you really want.')
+    # Reading
+    print('-----------------------------------------')
+    print('Start reading Polarization Calibration signals...')
+    print('-----------------------------------------')
+    print('-- Reading Polarization Calibration measurement files!')
+    
+    list_dirs = [d for d in os.listdir(finput)
+                 if os.path.isdir(os.path.join(finput, d))]
+            
+    sig_pos = []
+    shots_pos = []
+    position_pos = []
+   
+    for folder in list_dirs:
+        
+        path = os.path.join(finput, folder)  
+        
+        print(f'-- Reading {folder} files..')      
+        
+        # Select reader based on the file format
+        if file_format == 'polly_xt':
+         # In case of Polly define the cal_angle  
+            # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+            #     read_polly.dtfs(path, cfg, cal_angle)
+            sys.exit('--Error: PollyXT reading routines are not yet ready!')
 
-    if file_format not in ['licel', 'polly_xt']:
-        sys.exit('-- Error: file_format field not recognized. Please revise the settings file and use one of: polly_xt, licel')
+                
+        if file_format == 'licel':
+            lidar_info, channel_info, start_time, end_time, sig, shots, folder =\
+                read_licel.dtfs(dir_meas = path, mcode = mcode)
+            
+            lidar_info['start_time'] = start_time[0]
+            lidar_info['end_time'] = end_time[-1]
+            lidar_info['temporal_resolution'] = end_time[0] - start_time[0]
+                
+            position = folder_to_position(folder)
 
+        sig_pos.append(sig)
+        shots_pos.append(shots)
+        position_pos.append(position)
+
+    sig = xr.concat(sig_pos, dim = 'time').sortby('time')
+    shots = xr.concat(shots_pos, dim = 'time').sortby('time')
+    position = xr.concat(position_pos, dim = 'time').sortby('time')
+        
+    print('Reading Polarization Calibration signals complete!')
+    print('-----------------------------------------')
+    print('')
+
+    return(sig, shots, position, lidar_info, channel_info)
+
+
+def dark(finput, mcode, file_format):
+    
+    """Extracts the raw signal, shots, and rest metadata information out of the 
+    raw input files. The default format is currently licel. The signal units
+    are always mV for analog and counts for photon channels"""
+    
     # Reading
     print('-----------------------------------------')
     print('Start reading dark signals...')
     print('-----------------------------------------')
     print('-- Reading dark measurement files!')
     
-    path = os.path.join(finput, 'dark')        
+    path = finput       
 
     # Select reader based on the file format
     if file_format == 'polly_xt':
      # In case of Polly define the cal_angle  
-        sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-            read_polly.dtfs(path, cfg, cal_angle)
-            
+        # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+        #     read_polly.dtfs(path, cfg, cal_angle)
+        sys.exit('--Error: PollyXT reading routines are not yet ready!')
+
     elif file_format == 'licel':
-        cfg, start_time, end_time, sig, shots, folder =\
-            read_licel.dtfs(cfg, dir_meas = path)
+        lidar_info, channel_info, start_time, end_time, sig, shots, folder =\
+            read_licel.dtfs(dir_meas = path, mcode = mcode)
         
-        cfg.lidar['background_start_time'] = start_time[0]
-        cfg.lidar['background_end_time'] = end_time[-1]
-        cfg.lidar['background_temporal_resolution'] = end_time[0] - start_time[0]
+        lidar_info['background_start_time'] = start_time[0]
+        lidar_info['background_end_time'] = end_time[-1]
+        lidar_info['background_temporal_resolution'] = end_time[0] - start_time[0]
         
     print('Reading dark signals complete!')
     print('-----------------------------------------')
     print('')
-
-    # Convert analog channel units to mV (applicable mainly to licel)   
-    sig = unit_conv_bits_to_mV(cfg, signal = sig.copy(), shots = shots)
-        
-    return(cfg, sig, shots)
-
-def unit_conv_bits_to_mV(cfg, signal, shots):
-
-    """Converts analog signals from bits to mV"""
-    
-    if len(signal) > 0:
-        for j in cfg.channels.index:
-            ch = dict(channel = j)
-            if cfg.channels.ch_mode[j] == 0 and cfg.channels.channel_id[j] != '_': 
-                # analog conversion (to mV)
-                signal.loc[ch] = signal.loc[ch]*cfg.channels.ADC_range[j]/(shots.loc[ch]*(np.power(2,cfg.channels.ADC_bit[j]) -1))
-    
-    return(signal) 
+  
+    return(sig, shots, lidar_info, channel_info)
 
 def folder_to_sector(folder):
 
@@ -209,6 +218,22 @@ def folder_to_sector(folder):
     sector = xr.DataArray(sector_tmp, coords = folder.coords, dims = folder.dims)
     
     return(sector)
+
+def folder_to_position(folder):
+
+    fld = ['static', '-45', '+45']
+    sec = [0, 1, 2]
+        
+    folder_tmp = folder.values
+    
+    position_tmp = np.nan * np.zeros(folder_tmp.shape)
+    
+    for i in range(len(fld)):
+        position_tmp[folder == fld[i]] = sec[i]
+    
+    position = xr.DataArray(position_tmp, coords = folder.coords, dims = folder.dims)
+    
+    return(position)
 
 def time_to_sector(folder, files_per_sector):
     
