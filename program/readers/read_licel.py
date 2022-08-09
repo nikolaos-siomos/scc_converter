@@ -256,7 +256,11 @@ def read_header(channel_info, buffer, sep):
     
     channel_info.loc[:, 'licel_id'] = arr_head.loc[:, 'licel_id'].copy().values
     channel_info.loc[:, info_columns] = arr_head.loc[:, info_columns].copy().values.astype(float)
-    
+
+    mask_an = channel_info.loc[:,'acquisition_mode'].values == 0
+    channel_info.loc[:,'data_acquisition_range'][mask_an] = 1000.*channel_info.loc[:,'data_acquisition_range'][mask_an]
+    channel_info.loc[:,'data_acquisition_range'][~mask_an] = np.nan
+
     wave = np.array(list(np.char.split(arr_head.wave_pol.values.astype('str'),
                                        sep='.')))[:,0].astype(float)
     

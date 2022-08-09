@@ -1,7 +1,7 @@
 """
 @author: Peristera
 """
-import os, sys
+import os, sys, glob
 import numpy as np
 from readers import read_licel, read_polly
 import xarray as xr
@@ -108,7 +108,7 @@ def telecover(finput, mcode, file_format, files_per_sector = None):
     print('-----------------------------------------')
     print('')
 
-    return(sig, shots, sector, lidar_info, channel_info)
+    return(sig, shots, lidar_info, channel_info, sector)
 
 def calibration(finput, mcode, file_format):
     
@@ -165,7 +165,7 @@ def calibration(finput, mcode, file_format):
     print('-----------------------------------------')
     print('')
 
-    return(sig, shots, position, lidar_info, channel_info)
+    return(sig, shots, lidar_info, channel_info, position)
 
 
 def dark(finput, mcode, file_format):
@@ -202,6 +202,59 @@ def dark(finput, mcode, file_format):
     print('')
   
     return(sig, shots, lidar_info, channel_info)
+
+    """Extracts the raw signal, shots, and rest metadata information out of the 
+    raw input files. The default format is currently licel. The signal units
+    are always mV for analog and counts for photon channels"""
+    
+    # Reading
+    print('-----------------------------------------')
+    print('Start reading dark signals...')
+    print('-----------------------------------------')
+    print('-- Reading dark measurement files!')
+    
+def radiosonde(finput, delimiter, skip_header, skip_footer, usecols):
+
+    path = glob.glob(os.path.join(finput,'*'))
+    
+    lib_delimiter =  {"S": "",
+                      "C": ",",
+                      "T": "\t"}
+    
+    if len(path) > 1:
+        sys.exit("--Error: More than one txt files provided in the radiosonde folder! Please provide a single file with the radiosonde data with the following filename: yyyymmddhh<any_text>.txt ")
+    elif len(path) == 0 :
+        sys.exit("--Error: No txt file provided in the radiosonde folder! Please provide a single file with the radiosonde data with the following filename: yyyymmddhh<any_text>.txt ")
+
+    date, time = os.path.basename(path[0])[:15].split('_')
+
+    if int(date[:4]) not in np.arange(1960,9999,1) or \
+        int(date[4:6]) not in np.arange(1,13,1) \
+            or int(date[6:8]) not in np.arange(1,31,1):
+        sys.exit("--Error: The date provided in the radiosond filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+
+    if int(time[:2]) not in np.arange(0,24,1) or \
+        int(time[2:4]) not in np.arange(0,60,1) \
+            or int(date[4:6]) not in np.arange(0,60,1):
+        sys.exit("--Error: The time provided in the radiosond filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+        
+    data = np.genfromtxt(path[0],skip_header = skip_header, 
+                         skip_footer = skip_footer,
+                         delimiter = lib_delimiter[delimiter], 
+                         autostrip = True,
+                         usecols = np.array(usecols) - 1, dtype = float)
+
+    if len(usecols) == 3:
+        parameters = ['P', 'T']
+    if len(usecols) == 4:
+        parameters = ['P', 'T', 'RH']
+
+    alt = data[:,0]
+    atmo = xr.DataArray(data[:,1:], 
+                        coords = [alt, parameters], 
+                        dims = ['height', 'parameters'] )
+    
+    return(date, time, atmo)
 
 def folder_to_sector(folder):
 
