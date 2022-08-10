@@ -60,6 +60,8 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     ds.Longitude_degrees_east = lidar_info.longitude;
   
     ds.Measurement_ID = meas_ID;
+
+    ds.Measurement_type = 'ray';
     
     if not isinstance(sig_d,list):
 
@@ -200,6 +202,8 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     ds.Longitude_degrees_east = lidar_info.longitude;
   
     ds.Measurement_ID = meas_ID;
+
+    ds.Measurement_type = 'tlc';
     
     if not isinstance(sig_d,list):
 
@@ -331,6 +335,8 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     ds.Longitude_degrees_east = lidar_info.longitude;
   
     ds.Measurement_ID = meas_ID;
+    
+    ds.Measurement_type = 'pcl';
     
     if not isinstance(sig_d,list):
 
@@ -482,6 +488,8 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
   
     ds.Measurement_ID = meas_ID;
     
+    ds.Measurement_type = 'drk';
+
     ds.RawBck_Start_Date = lidar_info.background_start_time.strftime('%Y%m%d');
 
     ds.RawBck_Start_Time_UT = lidar_info.background_start_time.strftime('%H%M%S');
@@ -550,23 +558,28 @@ def radiosonde_file(nc_path, date, time, geodata, atmo):
     """Creates the radiosonde netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
     and exports it to nc_path"""
-        
-    ds = nc.Dataset(nc_path,mode='w')
-    
+
     n_points = atmo.height.size
-    
+
+    ds = nc.Dataset(nc_path,mode='w')
+
+# Adding Dimensions
     ds.createDimension('points', n_points)
-            
+        
+# Adding Global Parameters    
     ds.Altitude_meter_asl = geodata[2];
 
     ds.Latitude_degrees_north = geodata[0];
 
     ds.Longitude_degrees_east = geodata[1];
 
+    ds.Measurement_type = 'rs';
+
     ds.Sounding_Start_Date = date;
 
     ds.Sounding_Start_Time_UT = time;
 
+# Adding Variables
     make_nc_var(ds, name = 'Altitude', value = atmo.height.values, dtype = 'float', dims = ('points',))
 
     make_nc_var(ds, name = 'Pressure', value = atmo.loc[dict(parameters = 'P')].values, dtype = 'float', dims = ('points',))
