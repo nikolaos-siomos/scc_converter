@@ -86,7 +86,6 @@ def parse_config():
 
 
     args = vars(parser.parse_args())
-    print(args)
     
     mandatory_args = ['parent_folder']
 
