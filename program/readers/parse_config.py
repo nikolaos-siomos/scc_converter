@@ -1,7 +1,16 @@
 """
-Created on Sun May 17 21:06:52 2020
+@authors: Nikolaos Siomos (nikolaos.siomos@lmu.de)
 
-@author: nick
+================
+General:
+    Parses the command line arguments provided when calling __main_ 
+    The information is stored in a python dictionary
+    
+Returns:
+    
+    args:
+        A dictionary with all the information provided as command line arguments
+        
 """
 
 import argparse

@@ -10,7 +10,7 @@ import os, sys
 import netCDF4 as nc
 import numpy as np
 
-def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, P = None, T = None, rsonde = None):
+def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, P = None, T = None, rsonde = None):
 
     """Creates the rayleigh netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -99,9 +99,9 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
 
     make_nc_var(ds, name = 'Dead_Time_Correction_Type', value = channel_info.dead_time_correction_type.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Detected_Wavlength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Emitted_Wavlength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
@@ -122,6 +122,9 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     make_nc_var(ds, name = 'Laser_Repetition_Rate', value = channel_info.laser_repetition_rate.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Shots', value = shots.values, dtype = 'int', dims = ('time', 'channels',))
+    
+    if not isinstance(sig_d,list):
+        make_nc_var(ds, name = 'Background_Shots', value = shots_d.values, dtype = 'int', dims = ('time_bck', 'channels',))
 
     make_nc_var(ds, name = 'PMT_High_Voltage', value = channel_info.pmt_high_voltage.values, dtype = 'float', dims = ('channels',))
     
@@ -154,7 +157,7 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     
     return()
 
-def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, sector):
+def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, sector):
 
     """Creates the telecover netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -167,7 +170,7 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     n_nb_of_time_scales = 1
     n_scan_angles = 1
     
-    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values
+    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
 
     Raw_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     Raw_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
@@ -241,9 +244,9 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
 
     make_nc_var(ds, name = 'Dead_Time_Correction_Type', value = channel_info.dead_time_correction_type.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Detected_Wavlength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Emitted_Wavlength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
@@ -264,6 +267,9 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     make_nc_var(ds, name = 'Laser_Repetition_Rate', value = channel_info.laser_repetition_rate.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Shots', value = shots.values, dtype = 'int', dims = ('time', 'channels',))
+
+    if not isinstance(sig_d,list):
+        make_nc_var(ds, name = 'Background_Shots', value = shots_d.values, dtype = 'int', dims = ('time_bck', 'channels',))
 
     make_nc_var(ds, name = 'PMT_High_Voltage', value = channel_info.pmt_high_voltage.values, dtype = 'float', dims = ('channels',))
     
@@ -286,7 +292,7 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     
     return()
 
-def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, position, molecular_calc = [], P = [], T = [], rsonde = [], rayleigh = []):
+def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, position, molecular_calc = [], P = [], T = [], rsonde = [], rayleigh = []):
 
     """Creates the polarization calibration netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -300,7 +306,7 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     n_nb_of_time_scales = 1
     n_scan_angles = 1
 
-    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values
+    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
     
     Raw_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     Raw_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
@@ -374,9 +380,9 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
 
     make_nc_var(ds, name = 'Dead_Time_Correction_Type', value = channel_info.dead_time_correction_type.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Detected_Wavlength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Emitted_Wavlength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
@@ -397,6 +403,9 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     make_nc_var(ds, name = 'Laser_Repetition_Rate', value = channel_info.laser_repetition_rate.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Shots', value = shots.values, dtype = 'int', dims = ('time', 'channels',))
+
+    if not isinstance(sig_d,list):
+        make_nc_var(ds, name = 'Background_Shots', value = shots_d.values, dtype = 'int', dims = ('time_bck', 'channels',))
 
     make_nc_var(ds, name = 'PMT_High_Voltage', value = channel_info.pmt_high_voltage.values, dtype = 'float', dims = ('channels',))
     
@@ -459,7 +468,7 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
     n_nb_of_time_scales = 1
     n_scan_angles = 1
     
-    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values
+    channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
     
     if not isinstance(sig_d,list):
         n_time_bck = sig_d.time.size
@@ -517,9 +526,9 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
 
     make_nc_var(ds, name = 'Dead_Time_Correction_Type', value = channel_info.dead_time_correction_type.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Detected_Wavlength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Emitted_Wavlength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
@@ -539,7 +548,7 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
 
     make_nc_var(ds, name = 'Laser_Repetition_Rate', value = channel_info.laser_repetition_rate.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Shots', value = shots_d.values, dtype = 'int', dims = ('time', 'channels',))
+    make_nc_var(ds, name = 'Background_Shots', value = shots_d.values, dtype = 'int', dims = ('time_bck', 'channels',))
 
     make_nc_var(ds, name = 'PMT_High_Voltage', value = channel_info.pmt_high_voltage.values, dtype = 'float', dims = ('channels',))
         
@@ -635,7 +644,7 @@ def make_nc_var(ds, name, value, dtype, dims = []):
     
     if dtype == 'int':
         func = np.int32
-        default_val = nc.default_fillvals['i8']
+        default_val = nc.default_fillvals['i4']
         
     if dtype == 'float':
         func = np.double

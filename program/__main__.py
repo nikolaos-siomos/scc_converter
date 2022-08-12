@@ -10,7 +10,7 @@ from tools import process, automate
 # Ignores all warnings --> they are not printed in terminal
 warnings.filterwarnings('ignore')
 
-# Get the full path of the config_file.ini
+# Get the command line argument information
 args = parse_config()
 
 # Identify the measurement type (rayleigh , telecover, or calibration)    

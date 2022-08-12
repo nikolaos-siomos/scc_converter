@@ -23,7 +23,8 @@ def rayleigh(args):
     check_rayleigh(path)
 
     # Reading of the configuration file    
-    cfg = config(path = args['config_file'])   
+    cfg = config(path = args['config_file']) 
+
     licel_id_config = cfg.channels.licel_id.values
 
     # Read the files in the dark folder
@@ -77,7 +78,8 @@ def rayleigh(args):
                        P = args['ground_pressure'], 
                        T = args['ground_temperature'], 
                        rsonde = args['radiosonde_filename'], 
-                       sig = sig_raw, sig_d = sig_raw_d, shots = shots)
+                       sig = sig_raw, sig_d = sig_raw_d,
+                       shots = shots, shots_d = shots_d)
     
     print('Succesfully generated a rayleigh QA file!')
     print('')
@@ -147,7 +149,8 @@ def telecover(args):
     make.telecover_file(lidar_info = cfg.lidar.copy(), 
                         channel_info = cfg.channels.copy(), 
                         nc_path = nc_path, meas_ID = meas_ID, 
-                        sig = sig_raw, sig_d = sig_raw_d, shots = shots,
+                        sig = sig_raw, sig_d = sig_raw_d,
+                        shots = shots, shots_d = shots_d,
                         sector = sector)
     
     print('Succesfully generated a telecover QA file!')
@@ -225,7 +228,8 @@ def calibration(args):
                        T = args['ground_temperature'], 
                        rsonde = args['radiosonde_filename'],
                        rayleigh = args['rayleigh_filename'],  
-                       sig = sig_raw, sig_d = sig_raw_d, shots = shots,
+                       sig = sig_raw, sig_d = sig_raw_d,
+                       shots = shots, shots_d = shots_d,
                        position = position)
     
     print('Succesfully generated a calibration QA file!')
