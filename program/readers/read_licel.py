@@ -16,6 +16,7 @@ def dtfs(dir_meas, mcode):
     folder = []
     start_time_arr = []
     end_time_arr = []
+    filename = []
     
     if not(os.path.exists(dir_meas)):
         print('---- Error : The folder for reading signals does not exist! \r\n' +\
@@ -33,10 +34,10 @@ def dtfs(dir_meas, mcode):
             sep = find_sep(buffer)
             
             # Reading the licel file metadatas (header) - only for the first file
-            lidar_info = pd.Series()
+            meas_info = pd.Series()
             channel_info = pd.DataFrame()
-            lidar_info = read_geodata(lidar_info, buffer = buffer, sep = sep)
-            lidar_info = read_lasers(lidar_info, buffer = buffer, sep = sep)
+            meas_info = read_geodata(meas_info, buffer = buffer, sep = sep)
+            meas_info = read_lasers(meas_info, buffer = buffer, sep = sep)
             channel_info = read_header(channel_info, buffer = buffer, sep = sep)
             
             channels = channel_info.licel_id.values
@@ -49,10 +50,13 @@ def dtfs(dir_meas, mcode):
             shots_arr = np.nan*np.zeros((len(mfiles), len(channels)), dtype = object)
             sig_arr = np.nan*np.zeros((len(mfiles), len(channels), len(bins_arr)), dtype = float)
 
+            filename = np.empty(len(mfiles), dtype = object)
             folder = np.empty(len(mfiles), dtype = object)
 
             # Iterate over the files
             for k in range(len(mfiles)):
+                
+                filename[k] = os.path.basename(mfiles[k])
 
                 buffer = read_buffer(mfiles[k])
 
@@ -75,30 +79,32 @@ def dtfs(dir_meas, mcode):
                     folder[k] = (mfiles[k]).split(os.sep)[-2]
             
             sig_raw = xr.DataArray(sig_arr, 
-                                   coords=[start_time_arr, channels, bins_arr],
+                                   coords=[end_time_arr, channels, bins_arr],
                                    dims=['time', 'channel', 'bins']) 
             
             shots = xr.DataArray(shots_arr,  
-                                 coords=[start_time_arr, channels],
+                                 coords=[end_time_arr, channels],
                                  dims=['time', 'channel'])
             
-            folder = xr.DataArray(folder,  
-                                  coords=[start_time_arr],
-                                  dims=['time'])            
+            tdata = np.array([folder, filename, 
+                              start_time_arr, end_time_arr], dtype = object)
+
+            properties = ['folder', 'filename', 'start_time', 'end_time']
+            
+            time_info = pd.DataFrame(tdata.T,  
+                                     index = end_time_arr,
+                                     columns = properties)  
                         
             # Sort by time
             sig_raw = sig_raw.sortby('time').copy()
             shots = shots.sortby('time').copy()
-            folder = folder.sortby('time').copy()
-            start_time_arr = np.sort(start_time_arr)
-            end_time_arr = np.sort(end_time_arr)
+            time_info = time_info.sort_index()
             
         else:
             print('---- Warning! Folder empty \n'+\
                   f'---> !! Skip reading measurement files from folder {dir_meas}')  
 
-    return(lidar_info, channel_info, start_time_arr, end_time_arr, sig_raw, 
-           shots, folder)
+    return(meas_info, channel_info, time_info, sig_raw, shots)
 
 
 def read_body(channel_info, buffer, sep):
@@ -145,7 +151,7 @@ def find_sep(buffer):
     
     return(sep)
 
-def read_geodata(lidar_info, buffer, sep):
+def read_geodata(meas_info, buffer, sep):
 
     """ Retrieves location and geometry relevant information from 
     the licel header [altitude, latitude, longitude, 
@@ -161,19 +167,19 @@ def read_geodata(lidar_info, buffer, sep):
 
     # cfg.lidar['location'] = metadata[0]
 
-    lidar_info['altitude'] = float(metadata[5])    
-    lidar_info['latitude'] = float(metadata[6])
-    lidar_info['longitude'] = float(metadata[7])
+    meas_info['altitude'] = float(metadata[5])    
+    meas_info['latitude'] = float(metadata[6])
+    meas_info['longitude'] = float(metadata[7])
     
     if len(metadata) > 8:
-        lidar_info['zenith_angle'] = float(metadata[8])
+        meas_info['zenith_angle'] = float(metadata[8])
 
     if len(metadata) > 9:
-        lidar_info['azimuth_angle'] = float(metadata[9])
+        meas_info['azimuth_angle'] = float(metadata[9])
 
-    return(lidar_info)
+    return(meas_info)
 
-def read_lasers(lidar_info, buffer, sep):
+def read_lasers(meas_info, buffer, sep):
 
     """ Retrieves laser relevant information from 
     the licel header [laser A repetion rate, laser B repetion rate if it exists
@@ -187,15 +193,15 @@ def read_lasers(lidar_info, buffer, sep):
 
     metadata = header[2].split()
 
-    lidar_info['laser_A_repetition_rate'] = float(metadata[1])
+    meas_info['laser_A_repetition_rate'] = float(metadata[1])
 
     if len(metadata) > 2:
-        lidar_info['laser_B_repetition_rate'] = float(metadata[3])
+        meas_info['laser_B_repetition_rate'] = float(metadata[3])
         
     if len(metadata) > 5:
-        lidar_info['laser_C_repetition_rate'] = float(metadata[6])
+        meas_info['laser_C_repetition_rate'] = float(metadata[6])
         
-    return(lidar_info)
+    return(meas_info)
 
 def read_time(buffer, sep):
     

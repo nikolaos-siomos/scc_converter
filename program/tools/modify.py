@@ -39,11 +39,11 @@ def trim_channels(licel_id_config, sig, shots, channel_info):
         
     return(sig, shots, channel_info)
 
-def merge_config(cfg, lidar_info, channel_info):
+def merge_config(cfg, meas_info, channel_info):
 
-    for key in lidar_info.index:
+    for key in meas_info.index:
         if key not in cfg.lidar.index:
-            cfg.lidar.loc[key] = lidar_info.loc[key]    
+            cfg.lidar.loc[key] = meas_info.loc[key]    
     
     for key in channel_info.columns:
         if key not in cfg.channels.columns:

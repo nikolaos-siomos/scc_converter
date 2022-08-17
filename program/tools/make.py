@@ -10,7 +10,9 @@ import os, sys
 import netCDF4 as nc
 import numpy as np
 
-def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, P = None, T = None, rsonde = None):
+def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
+                  meas_ID, sig, sig_d, shots, shots_d, 
+                  P = None, T = None, rsonde = None):
 
     """Creates the rayleigh netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -25,18 +27,28 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     
     channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values
     
+    start_time = [np.datetime64(t,'us').item() for t in time_info['start_time']]
+    end_time = [np.datetime64(t,'us').item() for t in time_info['end_time']]
+    
+    start_t = [(dt - start_time[0]).seconds for dt in start_time]
+    end_t = [(dt - start_time[0]).seconds for dt in end_time]
+        
     Raw_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     Raw_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     
-    Raw_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.temporal_resolution.seconds
-    Raw_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.temporal_resolution.seconds
+    Raw_Start_Time[:,0] = start_t
+    Raw_Stop_Time[:,0] = end_t
     
     if not isinstance(sig_d,list):
         n_time_bck = sig_d.time.size
-        Bck_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.background_temporal_resolution.seconds
-        Bck_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.background_temporal_resolution.seconds
+        start_time_d = [np.datetime64(t,'us').item() for t in time_info_d['start_time']] 
+        end_time_d = [np.datetime64(t,'us').item() for t in time_info_d['end_time']]
+        start_t_d = [(dt - start_time_d[0]).seconds for dt in start_time_d]
+        end_t_d = [(dt - start_time_d[0]).seconds for dt in end_time_d]
+        Bck_Start_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Stop_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Start_Time[:,0] = start_t_d
+        Bck_Stop_Time[:,0] = end_t_d
     
     ds = nc.Dataset(nc_path,mode='w')
 
@@ -46,18 +58,21 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     ds.createDimension('points', n_points)
     ds.createDimension('nb_of_time_scales', n_nb_of_time_scales)
     ds.createDimension('scan_angles', n_scan_angles)
-    ds.createDimension('nchar',4)
-    if not isinstance(sig_d,list):
+    ds.createDimension('nchar_channel',4)
+    ds.createDimension('nchar_filename',15)
+    if not isinstance(sig_d,list):  
         ds.createDimension('time_bck', n_time_bck)
+        
     if radiosonde_file:
+        
         ds.Sounding_File_Name = rsonde;
     
 # Adding Global Parameters
-    ds.Altitude_meter_asl = lidar_info.altitude;
+    ds.Altitude_meter_asl = meas_info.altitude;
 
-    ds.Latitude_degrees_north = lidar_info.latitude;
+    ds.Latitude_degrees_north = meas_info.latitude;
 
-    ds.Longitude_degrees_east = lidar_info.longitude;
+    ds.Longitude_degrees_east = meas_info.longitude;
   
     ds.Measurement_ID = meas_ID;
 
@@ -65,33 +80,33 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     
     if not isinstance(sig_d,list):
 
-        ds.RawBck_Start_Date = lidar_info.background_start_time.strftime('%Y%m%d');
+        ds.RawBck_Start_Date = start_time_d[0].strftime('%Y%m%d');
 
-        ds.RawBck_Start_Time_UT = lidar_info.background_start_time.strftime('%H%M%S');
+        ds.RawBck_Start_Time_UT = start_time_d[0].strftime('%H%M%S');
 
-        ds.RawBck_Stop_Time_UT = lidar_info.background_end_time.strftime('%H%M%S');
+        ds.RawBck_Stop_Time_UT = end_time_d[-1].strftime('%H%M%S');
 
-    ds.RawData_Start_Date = lidar_info.start_time.strftime('%Y%m%d');
+    ds.RawData_Start_Date = start_time[0].strftime('%Y%m%d');
     
-    ds.RawData_Start_Time_UT = lidar_info.start_time.strftime('%H%M%S');
+    ds.RawData_Start_Time_UT = start_time[0].strftime('%H%M%S');
     
-    ds.RawData_Stop_Time_UT = lidar_info.end_time.strftime('%H%M%S');
+    ds.RawData_Stop_Time_UT = end_time[-1].strftime('%H%M%S');
 
 # Adding Variables
     make_nc_var(ds, name = 'Acquisition_Mode', value = channel_info.acquisition_mode.values, dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'ADC_resolution', value = channel_info.analog_to_digital_resolution.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'int', dims = ('channels',))
     
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
     make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
 
-    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar'))    
+    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
     make_nc_var(ds, name = 'DAQ_Range', value = channel_info.data_acquisition_range.values, dtype = 'float', dims = ('channels',))
     
@@ -102,18 +117,20 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
-    
-    make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
-    
+
+    make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
+
+    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+        
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = lidar_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = lidar_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
@@ -135,11 +152,16 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     make_nc_var(ds, name = 'Raw_Data_Start_Time', value = Raw_Start_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
     
     make_nc_var(ds, name = 'Raw_Data_Stop_Time', value = Raw_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+
+    make_nc_var(ds, name = 'Trigger_Delay', value = - channel_info.trigger_delay_bins.values.astype(float) * 150. / channel_info.range_resolution.values, dtype = 'float', dims = ('channels',))
+
+    make_nc_var(ds, name = 'Trigger_Delay_Bins', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
     if not isinstance(sig_d,list):
-        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        
+        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
     if radiosonde_file:
     
@@ -157,7 +179,8 @@ def rayleigh_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots,
     
     return()
 
-def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, sector):
+def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path, 
+                   meas_ID, sig, sig_d, shots, shots_d):
 
     """Creates the telecover netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -171,20 +194,30 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     n_scan_angles = 1
     
     channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
-
+    
+    start_time = [np.datetime64(t,'us').item() for t in time_info['start_time']]
+    end_time = [np.datetime64(t,'us').item() for t in time_info['end_time']]
+    
+    start_t = [(dt - start_time[0]).seconds for dt in start_time]
+    end_t = [(dt - start_time[0]).seconds for dt in end_time]
+        
     Raw_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     Raw_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     
-    Raw_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.temporal_resolution.seconds
-    Raw_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.temporal_resolution.seconds
+    Raw_Start_Time[:,0] = start_t
+    Raw_Stop_Time[:,0] = end_t
     
     if not isinstance(sig_d,list):
-        n_time_bck =sig_d.time.size
-        Bck_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.background_temporal_resolution.seconds
-        Bck_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.background_temporal_resolution.seconds
-
+        n_time_bck = sig_d.time.size
+        start_time_d = [np.datetime64(t,'us').item() for t in time_info_d['start_time']] 
+        end_time_d = [np.datetime64(t,'us').item() for t in time_info_d['end_time']]
+        start_t_d = [(dt - start_time_d[0]).seconds for dt in start_time_d]
+        end_t_d = [(dt - start_time_d[0]).seconds for dt in end_time_d]
+        Bck_Start_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Stop_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Start_Time[:,0] = start_t_d
+        Bck_Stop_Time[:,0] = end_t_d
+        
     ds = nc.Dataset(nc_path,mode='w')
 
 # Adding Dimensions    
@@ -193,16 +226,17 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     ds.createDimension('points', n_points)
     ds.createDimension('nb_of_time_scales', n_nb_of_time_scales)
     ds.createDimension('scan_angles', n_scan_angles)
-    ds.createDimension('nchar',4)
+    ds.createDimension('nchar_channel',4)
+    ds.createDimension('nchar_filename',15)
     if not isinstance(sig_d,list):
         ds.createDimension('time_bck', n_time_bck)
     
 # Adding Global Parameters
-    ds.Altitude_meter_asl = lidar_info.altitude;
+    ds.Altitude_meter_asl = meas_info.altitude;
 
-    ds.Latitude_degrees_north = lidar_info.latitude;
+    ds.Latitude_degrees_north = meas_info.latitude;
 
-    ds.Longitude_degrees_east = lidar_info.longitude;
+    ds.Longitude_degrees_east = meas_info.longitude;
   
     ds.Measurement_ID = meas_ID;
 
@@ -210,33 +244,33 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     
     if not isinstance(sig_d,list):
 
-        ds.RawBck_Start_Date = lidar_info.background_start_time.strftime('%Y%m%d');
+        ds.RawBck_Start_Date = start_time_d[0].strftime('%Y%m%d');
 
-        ds.RawBck_Start_Time_UT = lidar_info.background_start_time.strftime('%H%M%S');
+        ds.RawBck_Start_Time_UT = start_time_d[0].strftime('%H%M%S');
 
-        ds.RawBck_Stop_Time_UT = lidar_info.background_end_time.strftime('%H%M%S');
+        ds.RawBck_Stop_Time_UT = end_time_d[-1].strftime('%H%M%S');
 
-    ds.RawData_Start_Date = lidar_info.start_time.strftime('%Y%m%d');
+    ds.RawData_Start_Date = start_time[0].strftime('%Y%m%d');
     
-    ds.RawData_Start_Time_UT = lidar_info.start_time.strftime('%H%M%S');
+    ds.RawData_Start_Time_UT = start_time[0].strftime('%H%M%S');
     
-    ds.RawData_Stop_Time_UT = lidar_info.end_time.strftime('%H%M%S');
+    ds.RawData_Stop_Time_UT = end_time[-1].strftime('%H%M%S');
 
 # Adding Variables
     make_nc_var(ds, name = 'Acquisition_Mode', value = channel_info.acquisition_mode.values, dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'ADC_resolution', value = channel_info.analog_to_digital_resolution.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'int', dims = ('channels',))
     
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
     make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
 
-    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar'))    
+    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
     make_nc_var(ds, name = 'DAQ_Range', value = channel_info.data_acquisition_range.values, dtype = 'float', dims = ('channels',))
     
@@ -247,18 +281,20 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
-    
-    make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
-    
+
+    make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
+
+    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+                
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = lidar_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = lidar_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
@@ -268,6 +304,10 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     
     make_nc_var(ds, name = 'Laser_Shots', value = shots.values, dtype = 'int', dims = ('time', 'channels',))
 
+    make_nc_var(ds, name = 'Trigger_Delay', value = - channel_info.trigger_delay_bins.values.astype(float) * 150. / channel_info.range_resolution.values, dtype = 'float', dims = ('channels',))
+
+    make_nc_var(ds, name = 'Trigger_Delay_Bins', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
+    
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Shots', value = shots_d.values, dtype = 'int', dims = ('time_bck', 'channels',))
 
@@ -282,17 +322,19 @@ def telecover_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots
     make_nc_var(ds, name = 'Raw_Data_Stop_Time', value = Raw_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
     
     if not isinstance(sig_d,list):
-        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-    make_nc_var(ds, name = 'sector', value = sector.values, dtype = 'int', dims = ('time',))
+    make_nc_var(ds, name = 'sector', value = time_info.sector.values, dtype = 'int', dims = ('time',))
     
     ds.close()
     
     return()
 
-def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, shots, shots_d, position, molecular_calc = [], P = [], T = [], rsonde = [], rayleigh = []):
+def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
+                     meas_ID, sig, sig_d, shots, shots_d, molecular_calc = [], 
+                     P = [], T = [], rsonde = [], rayleigh = []):
 
     """Creates the polarization calibration netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -308,18 +350,28 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
 
     channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
     
+    start_time = [np.datetime64(t,'us').item() for t in time_info['start_time']]
+    end_time = [np.datetime64(t,'us').item() for t in time_info['end_time']]
+    
+    start_t = [(dt - start_time[0]).seconds for dt in start_time]
+    end_t = [(dt - start_time[0]).seconds for dt in end_time]
+        
     Raw_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     Raw_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
     
-    Raw_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.temporal_resolution.seconds
-    Raw_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.temporal_resolution.seconds
+    Raw_Start_Time[:,0] = start_t
+    Raw_Stop_Time[:,0] = end_t
     
     if not isinstance(sig_d,list):
         n_time_bck = sig_d.time.size
-        Bck_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.background_temporal_resolution.seconds
-        Bck_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.background_temporal_resolution.seconds
+        start_time_d = [np.datetime64(t,'us').item() for t in time_info_d['start_time']] 
+        end_time_d = [np.datetime64(t,'us').item() for t in time_info_d['end_time']]
+        start_t_d = [(dt - start_time_d[0]).seconds for dt in start_time_d]
+        end_t_d = [(dt - start_time_d[0]).seconds for dt in end_time_d]
+        Bck_Start_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Stop_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+        Bck_Start_Time[:,0] = start_t_d
+        Bck_Stop_Time[:,0] = end_t_d
     
     ds = nc.Dataset(nc_path,mode='w')
 
@@ -329,16 +381,17 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     ds.createDimension('points', n_points)
     ds.createDimension('nb_of_time_scales', n_nb_of_time_scales)
     ds.createDimension('scan_angles', n_scan_angles)
-    ds.createDimension('nchar',4)
+    ds.createDimension('nchar_channel',4)
+    ds.createDimension('nchar_filename',15)
     if not isinstance(sig_d,list):
         ds.createDimension('time_bck', n_time_bck)
 
 # Adding Global Parameters
-    ds.Altitude_meter_asl = lidar_info.altitude;
+    ds.Altitude_meter_asl = meas_info.altitude;
 
-    ds.Latitude_degrees_north = lidar_info.latitude;
+    ds.Latitude_degrees_north = meas_info.latitude;
 
-    ds.Longitude_degrees_east = lidar_info.longitude;
+    ds.Longitude_degrees_east = meas_info.longitude;
   
     ds.Measurement_ID = meas_ID;
     
@@ -346,33 +399,33 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     
     if not isinstance(sig_d,list):
 
-        ds.RawBck_Start_Date = lidar_info.background_start_time.strftime('%Y%m%d');
+        ds.RawBck_Start_Date = start_time_d[0].strftime('%Y%m%d');
 
-        ds.RawBck_Start_Time_UT = lidar_info.background_start_time.strftime('%H%M%S');
+        ds.RawBck_Start_Time_UT = start_time_d[0].strftime('%H%M%S');
 
-        ds.RawBck_Stop_Time_UT = lidar_info.background_end_time.strftime('%H%M%S');
+        ds.RawBck_Stop_Time_UT = end_time_d[-1].strftime('%H%M%S');
 
-    ds.RawData_Start_Date = lidar_info.start_time.strftime('%Y%m%d');
+    ds.RawData_Start_Date = start_time[0].strftime('%Y%m%d');
     
-    ds.RawData_Start_Time_UT = lidar_info.start_time.strftime('%H%M%S');
+    ds.RawData_Start_Time_UT = start_time[0].strftime('%H%M%S');
     
-    ds.RawData_Stop_Time_UT = lidar_info.end_time.strftime('%H%M%S');
+    ds.RawData_Stop_Time_UT = end_time[-1].strftime('%H%M%S');
 
 # Adding Variables
     make_nc_var(ds, name = 'Acquisition_Mode', value = channel_info.acquisition_mode.values, dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'ADC_resolution', value = channel_info.analog_to_digital_resolution.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'int', dims = ('channels',))
     
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
     make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
 
-    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar'))    
+    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
     make_nc_var(ds, name = 'DAQ_Range', value = channel_info.data_acquisition_range.values, dtype = 'float', dims = ('channels',))
     
@@ -383,18 +436,20 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
-    
-    make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
-    
+
+    make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
+
+    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+                
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = lidar_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = lidar_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
@@ -417,12 +472,16 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     
     make_nc_var(ds, name = 'Raw_Data_Stop_Time', value = Raw_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
-    make_nc_var(ds, name = 'calibrator_position', value = position.values, dtype = 'int', dims = ('time',))
+    make_nc_var(ds, name = 'Trigger_Delay', value = - channel_info.trigger_delay_bins.values.astype(float) * 150. / channel_info.range_resolution.values, dtype = 'float', dims = ('channels',))
+
+    make_nc_var(ds, name = 'Trigger_Delay_Bins', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
+    
+    make_nc_var(ds, name = 'calibrator_position', value = time_info.position.values, dtype = 'int', dims = ('time',))
     
     if not isinstance(sig_d,list):
-        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+        make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
     if isinstance(molecular_calc, list) == False:
     
@@ -455,13 +514,14 @@ def calibration_file(lidar_info, channel_info, nc_path, meas_ID, sig, sig_d, sho
     
     return()
 
-def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
+def dark_file(meas_info, channel_info, time_info_d, nc_path, 
+              meas_ID, sig_d, shots_d):
 
     """Creates the rayleigh netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
     and exports it to nc_path"""
             
-    n_time = sig_d.time.size
+    n_time_bck = sig_d.time.size
     n_channels = sig_d.channel.size
     n_points = sig_d.bins.size
 
@@ -470,55 +530,58 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
     
     channel_label = channel_info.telescope_type.values + channel_info.channel_type.values + channel_info.acquisition_type.values + channel_info.channel_subtype.values + channel_info.detected_wavelength.values.astype('int').astype('str')
     
-    if not isinstance(sig_d,list):
-        n_time_bck = sig_d.time.size
-        Bck_Start_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Stop_Time = np.nan * np.zeros([n_time,n_nb_of_time_scales])
-        Bck_Start_Time[:,0] = np.arange(0,n_time,1) * lidar_info.background_temporal_resolution.seconds
-        Bck_Stop_Time[:,0] = np.arange(1,n_time+1,1) * lidar_info.background_temporal_resolution.seconds
-
+    n_time_bck = sig_d.time.size
+    start_time_d = [np.datetime64(t,'us').item() for t in time_info_d['start_time']] 
+    end_time_d = [np.datetime64(t,'us').item() for t in time_info_d['end_time']]
+    start_t_d = [(dt - start_time_d[0]).seconds for dt in start_time_d]
+    end_t_d = [(dt - start_time_d[0]).seconds for dt in end_time_d]
+    Bck_Start_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+    Bck_Stop_Time = np.nan * np.zeros([n_time_bck,n_nb_of_time_scales])
+    Bck_Start_Time[:,0] = start_t_d
+    Bck_Stop_Time[:,0] = end_t_d
+    
     ds = nc.Dataset(nc_path,mode='w')
 
 # Adding Dimensions
-    ds.createDimension('time', n_time)
     ds.createDimension('channels', n_channels)
     ds.createDimension('points', n_points)
     ds.createDimension('nb_of_time_scales', n_nb_of_time_scales)
     ds.createDimension('scan_angles', n_scan_angles)
-    ds.createDimension('nchar',4)
+    ds.createDimension('nchar_channel',4)
+    ds.createDimension('nchar_filename',15)
     ds.createDimension('time_bck', n_time_bck)    
 
 # Adding Global Parameters
-    ds.Altitude_meter_asl = lidar_info.altitude;
+    ds.Altitude_meter_asl = meas_info.altitude;
 
-    ds.Latitude_degrees_north = lidar_info.latitude;
+    ds.Latitude_degrees_north = meas_info.latitude;
 
-    ds.Longitude_degrees_east = lidar_info.longitude;
+    ds.Longitude_degrees_east = meas_info.longitude;
   
     ds.Measurement_ID = meas_ID;
     
     ds.Measurement_type = 'drk';
 
-    ds.RawBck_Start_Date = lidar_info.background_start_time.strftime('%Y%m%d');
+    ds.RawBck_Start_Date = start_time_d[0].strftime('%Y%m%d');
 
-    ds.RawBck_Start_Time_UT = lidar_info.background_start_time.strftime('%H%M%S');
+    ds.RawBck_Start_Time_UT = start_time_d[0].strftime('%H%M%S');
 
-    ds.RawBck_Stop_Time_UT = lidar_info.background_end_time.strftime('%H%M%S');
+    ds.RawBck_Stop_Time_UT = end_time_d[-1].strftime('%H%M%S');
 
 # Adding Variables
     make_nc_var(ds, name = 'Acquisition_Mode', value = channel_info.acquisition_mode.values, dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'ADC_resolution', value = channel_info.analog_to_digital_resolution.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_Low', value = channel_info.background_low.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'float', dims = ('channels',))
+    make_nc_var(ds, name = 'Background_High', value = channel_info.background_high.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
     make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
 
-    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar'))    
+    make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
     make_nc_var(ds, name = 'DAQ_Range', value = channel_info.data_acquisition_range.values, dtype = 'float', dims = ('channels',))
     
@@ -529,20 +592,20 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
     make_nc_var(ds, name = 'Detected_Wavelength', value = channel_info.detected_wavelength.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Emitted_Wavelength', value = channel_info.emitted_wavelength.values, dtype = 'float', dims = ('channels',))
-    
-    make_nc_var(ds, name = 'First_Signal_Rangebin', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
-    
+
+    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+                
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = lidar_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = lidar_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time_bck, n_nb_of_time_scales]), dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
 
     make_nc_var(ds, name = 'Laser_Polarization',  value = channel_info.laser_polarization.values, dtype = 'int', dims = ('channels',))
 
@@ -553,10 +616,14 @@ def dark_file(lidar_info, channel_info, nc_path, meas_ID, sig_d, shots_d):
     make_nc_var(ds, name = 'PMT_High_Voltage', value = channel_info.pmt_high_voltage.values, dtype = 'float', dims = ('channels',))
         
     make_nc_var(ds, name = 'Raw_Data_Range_Resolution', value = channel_info.range_resolution.values, dtype = 'float', dims = ('channels',))
+
+    make_nc_var(ds, name = 'Trigger_Delay', value = - channel_info.trigger_delay_bins.values.astype(float) * 150. / channel_info.range_resolution.values, dtype = 'float', dims = ('channels',))
+
+    make_nc_var(ds, name = 'Trigger_Delay_Bins', value = channel_info.trigger_delay_bins.values, dtype = 'int', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Bck_Data_Start_Time_UT', value = Bck_Start_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+    make_nc_var(ds, name = 'Bck_Data_Start_Time', value = Bck_Start_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-    make_nc_var(ds, name = 'Bck_Data_Stop_Time_UT', value = Bck_Stop_Time, dtype = 'int', dims = ('time', 'nb_of_time_scales',))
+    make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
     ds.close()
     
@@ -675,11 +742,11 @@ def make_nc_var(ds, name, value, dtype, dims = []):
         
     return()
 
-def make_nc_str(ds, name, value, dims):  
+def make_nc_str(ds, name, value, dims, length):  
     """Function called by the *_file functions in order to fascilitate variable
     creation in the netcdf"""
 
-    value_char = nc.stringtochar(value.astype('S4'))
+    value_char = nc.stringtochar(value.astype(f'S{length}'))
 
     var = ds.createVariable(name, 'S1', dims)
     
