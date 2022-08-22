@@ -225,18 +225,12 @@ def detect_overflows(sig, shots, channel_info, time_info, method = 0):
     print('-----------------------------------------')
     print('Handling overflow values...')
     print('-----------------------------------------')
-
-    channel_id = channel_info.channel_id.values
     
-    acquisition_mode = channel_info.acquisition_mode.values
+    acquisition_mode = channel_info.acquisition_mode
     
-    daq_range = channel_info.data_acquisition_range.values
+    daq_range = channel_info.data_acquisition_range
 
     filename = time_info.filename
-        
-    daq_range = pd.Series(daq_range, index = channel_id)
-
-    acquisition_mode = pd.Series(acquisition_mode, index = channel_id)
         
     # Get an overflow mask for each bin
     mask = get_overflow_mask(sig, acquisition_mode, daq_range)

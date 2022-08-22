@@ -40,7 +40,7 @@ def dtfs(dir_meas, mcode):
             meas_info = read_lasers(meas_info, buffer = buffer, sep = sep)
             channel_info = read_header(channel_info, buffer = buffer, sep = sep)
             
-            channels = channel_info.channel_id.values
+            channels = channel_info.index.values
             bins_arr = np.arange(1., channel_info.bins.max() + 1.)
 
             # Creating empty signal, shots, and time arrays
@@ -245,7 +245,7 @@ def read_header(channel_info, buffer, sep):
     header = np.array(list(np.char.split(header[3:])),dtype = object)
 
     for i in range(len(header[:,-1])):
-        channel_ID.append(header[i, -1] + '_L' + str(header[i, 2]))   
+        channel_ID.append(header[i, -1] + '_L' + str(int(header[i, 2])))   
     
     cols = ['active', 'acquisition_mode', 'laser', 'bins', 
             'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
@@ -256,6 +256,8 @@ def read_header(channel_info, buffer, sep):
     arr_head = pd.DataFrame(header, index = channel_ID, columns = cols, 
                             dtype = object)
     
+    channel_info.index = channel_ID
+
     info_columns = ['acquisition_mode', 'laser', 'bins', 'laser_polarization', 
                     'pmt_high_voltage', 'range_resolution', 
                     'data_acquisition_range', 'analog_to_digital_resolution']

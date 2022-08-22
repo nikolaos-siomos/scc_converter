@@ -117,13 +117,14 @@ def calibration(finput, mcode, file_format):
     print('-----------------------------------------')
     
     list_dirs = [d for d in os.listdir(finput)
-                 if os.path.isdir(os.path.join(finput, d))]
+                 if os.path.isdir(os.path.join(finput, d)) and 
+                 d in ['-45','+45']]
             
     sig_pos = []
     shots_pos = []
     position_pos = []
     time_info_pos = []
-   
+
     for folder in list_dirs:
         
         path = os.path.join(finput, folder)  

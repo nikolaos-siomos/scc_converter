@@ -25,8 +25,6 @@ def rayleigh(args):
     # Reading of the configuration file    
     cfg = config(path = args['config_file']) 
 
-    channel_id_config = cfg.channels.channel_id.values
-
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
         read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
@@ -38,10 +36,10 @@ def rayleigh(args):
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
         sig_raw_d, shots_d, channel_info_d = \
-            modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d)
+            modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
     
     sig_raw, shots, channel_info = \
-        modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw, shots = shots, channel_info = channel_info)
+        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'ray')
   
     # Add the information from the raw file headers to the configuration object
     if not isinstance(sig_raw_d,list):
@@ -118,7 +116,6 @@ def telecover(args):
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
-    channel_id_config = cfg.channels.channel_id.values
 
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
@@ -131,10 +128,10 @@ def telecover(args):
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
         sig_raw_d, shots_d, channel_info_d = \
-            modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d)
+            modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
     
     sig_raw, shots, channel_info = \
-        modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw, shots = shots, channel_info = channel_info)
+        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'tlc')
   
     # Add the information from the raw file headers to the configuration object
     if not isinstance(sig_raw_d,list):
@@ -207,7 +204,6 @@ def calibration(args):
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
-    channel_id_config = cfg.channels.channel_id.values        
 
     # Check if the rayleigh filename was provided
     if not args['rayleigh_filename']:
@@ -223,11 +219,11 @@ def calibration(args):
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
-        sig_raw_d, shots_d, channel_info_d = \
-            modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d)
+        sig_raw_d, shots_d, channel_info_d, cfg = \
+            modify.trim_channels(cfg = cfg, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'pcl')
     
-    sig_raw, shots, channel_info = \
-        modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw, shots = shots, channel_info = channel_info)
+    sig_raw, shots, channel_info, cfg = \
+        modify.trim_channels(cfg = cfg, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'pcl')
   
     # Add the information from the raw file headers to the configuration object
     if not isinstance(sig_raw_d,list):
@@ -299,17 +295,16 @@ def dark(args):
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
-    channel_id_config = cfg.channels.channel_id.values
 
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
         read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
 
 
-    # Remove channels that should be excluded according to the configuration file
+     # Remove channels that should be excluded according to the configuration file
     sig_raw_d, shots_d, channel_info_d = \
-        modify.trim_channels(channel_id_config = channel_id_config, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d)
-    
+        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
+        
     # Add the information from the raw file headers to the configuration object
     cfg = modify.merge_config(cfg = cfg, meas_info = meas_info_d, channel_info = channel_info_d)
 

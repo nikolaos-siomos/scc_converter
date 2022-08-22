@@ -9,35 +9,47 @@ Created on Tue Jul 26 15:22:31 2022
 import numpy as np
 import sys
 
-def trim_channels(channel_id_config, sig, shots, channel_info):
+def trim_channels(cfg, sig, shots, channel_info, meas_type):
     
     """Channels are selected based on the channel_id variable in the configuration
-    file. All IDs in the config_file must be corresponendt to the Licel IDs in
+    file. All IDs in the config_file must be correspondent to the Licel IDs in
     the raw files. If an unkown ID is included in the config_file then an error
-    is raised"""
+    is raised. For polarization calibration measurements, channels that are 
+    neither co- nor cross- polar will be automatically removed"""
     
-    channel_id_files = channel_info.channel_id.values
-    
-    if any(channel_id_config_i not in channel_id_files for channel_id_config_i in channel_id_config):
-        sys.exit("--Error: The some of the licel IDs defined in the configuration file do not match with the licel IDs from the licel header. Please revise the configuration file! ")
 
-    
-    if channel_id_config.size > channel_id_files.size:
-        sys.exit("--Error: The number of licel IDs provided in the configuration file exceed the number of IDs provided in the licel header. Please revise the configuration file! ")
-    
-    channel_id_com = np.intersect1d(channel_id_config, channel_id_files)
-    
-    mask_com = [channel_id_config_i in channel_id_files for channel_id_config_i in channel_id_config]
-    
-    channel_id_com = channel_id_config[mask_com]
-    
-    index_com = np.array(range(channel_id_config.size))[mask_com]
+    channel_type_cfg = cfg.channels.channel_type.values
 
-    sig = sig.loc[dict(channel = channel_id_com)]
-    shots = shots.loc[dict(channel = channel_id_com)]
-    channel_info = channel_info.iloc[index_com,:]
+    channel_ind_cfg = cfg.channels.index.values
         
-    return(sig, shots, channel_info)
+    
+    if meas_type == 'pcl':
+        
+        channel_ind_cfg = channel_ind_cfg[(channel_type_cfg == 'p') | 
+                                          (channel_type_cfg == 'c')]
+        
+    channel_ind_raw = channel_info.index.values
+    
+    if any(channel_ind_cfg_i not in channel_ind_raw 
+           for channel_ind_cfg_i in channel_ind_cfg):
+        print("-- Warning: Some of the licel IDs defined in the configuration file do not match with the licel IDs from the licel header. These channels will be skipped! ")
+
+    channel_ind_com = [channel_ind_cfg_i for channel_ind_cfg_i in channel_ind_cfg 
+                       if channel_ind_cfg_i in channel_ind_raw]
+
+    
+    sig = sig.loc[dict(channel = channel_ind_com)]
+    
+    shots = shots.loc[dict(channel = channel_ind_com)]
+    
+    channel_info = channel_info.loc[channel_ind_com,:]
+    
+    cfg.channels = cfg.channels.loc[channel_ind_com,:]
+    
+    # print(channel_info)
+    # print(cfg.channels)
+        
+    return(sig, shots, channel_info, cfg)
 
 def merge_config(cfg, meas_info, channel_info):
 
@@ -84,13 +96,15 @@ def unit_conv_bits_to_mV(channel_info, signal, shots):
         
         mask_an = channel_info.acquisition_mode.values == 0
         
-        channel_id_an = channel_info.channel_id[mask_an].values
-        data_acquisition_range = channel_info.data_acquisition_range[mask_an].values
-        analog_to_digital_resolution = channel_info.analog_to_digital_resolution[mask_an].values
+        channel_id_an = channel_info.index.values[mask_an]
         
-        for i in range(channel_id_an.size):
-            ch = dict(channel = channel_id_an[i])
+        data_acquisition_range = channel_info.data_acquisition_range
+        
+        analog_to_digital_resolution = channel_info.analog_to_digital_resolution
+        
+        for ch in channel_id_an:
+            ch_d = dict(channel = ch)
             # analog conversion (to mV)
-            signal.loc[ch] = signal.loc[ch]*data_acquisition_range[i]/(shots.loc[ch]*(np.power(2,analog_to_digital_resolution[i])-1.))
+            signal.loc[ch_d] = signal.loc[ch_d]*data_acquisition_range.loc[ch]/(shots.loc[ch_d]*(np.power(2,analog_to_digital_resolution.loc[ch])-1.))
     
     return(signal) 
