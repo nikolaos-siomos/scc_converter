@@ -14,6 +14,10 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
                   meas_ID, sig, sig_d, shots, shots_d, 
                   P = None, T = None, rsonde = None):
 
+    print('-----------------------------------------')
+    print('Start exporting to a Rayleigh QA file...')
+    print('-----------------------------------------')
+    
     """Creates the rayleigh netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
     and exports it to nc_path"""
@@ -104,7 +108,7 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
-    make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'channel_ID', value = channel_info.scc_id.values, dtype = 'int', dims = ('channels',))
 
     make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
@@ -181,6 +185,10 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
 def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path, 
                    meas_ID, sig, sig_d, shots, shots_d):
+
+    print('-----------------------------------------')
+    print('Start exporting to a Telecover QA file...')
+    print('-----------------------------------------')
 
     """Creates the telecover netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -268,7 +276,7 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
-    make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'channel_ID', value = channel_info.scc_id.values, dtype = 'int', dims = ('channels',))
 
     make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
@@ -336,6 +344,10 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
                      meas_ID, sig, sig_d, shots, shots_d, molecular_calc = [], 
                      P = [], T = [], rsonde = [], rayleigh = []):
 
+    print('-----------------------------------------')
+    print('Start exporting to a Calibration QA file...')
+    print('-----------------------------------------')
+    
     """Creates the polarization calibration netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
     and exports it to nc_path"""
@@ -423,7 +435,7 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     if not isinstance(sig_d,list):
         make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
-    make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'channel_ID', value = channel_info.scc_id.values, dtype = 'int', dims = ('channels',))
 
     make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
@@ -516,6 +528,10 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
 def dark_file(meas_info, channel_info, time_info_d, nc_path, 
               meas_ID, sig_d, shots_d):
+    
+    print('-----------------------------------------')
+    print('Start exporting to a Standalone Dark QA file...')
+    print('-----------------------------------------')
 
     """Creates the rayleigh netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
@@ -579,7 +595,7 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
     
     make_nc_var(ds, name = 'Background_Profile', value = sig_d.values, dtype = 'float', dims = ('time_bck', 'channels', 'points',))
 
-    make_nc_var(ds, name = 'channel_ID', value = channel_info.channel_id.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'channel_ID', value = channel_info.scc_id.values, dtype = 'int', dims = ('channels',))
 
     make_nc_str(ds, name = 'channel_label', value = channel_label, dims = ('channels','nchar_channel'), length = 4)    
     
@@ -631,6 +647,10 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
 
 def radiosonde_file(nc_path, date, time, geodata, atmo):
 
+    print('-----------------------------------------')
+    print('Start exporting to a radiosonde QA file...')
+    print('-----------------------------------------')
+    
     """Creates the radiosonde netcdf file according to the SCC format 
     https://docs.scc.imaa.cnr.it/en/latest/file_formats/netcdf_file.html
     and exports it to nc_path"""

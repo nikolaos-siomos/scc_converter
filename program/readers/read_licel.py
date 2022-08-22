@@ -40,7 +40,7 @@ def dtfs(dir_meas, mcode):
             meas_info = read_lasers(meas_info, buffer = buffer, sep = sep)
             channel_info = read_header(channel_info, buffer = buffer, sep = sep)
             
-            channels = channel_info.licel_id.values
+            channels = channel_info.channel_id.values
             bins_arr = np.arange(1., channel_info.bins.max() + 1.)
 
             # Creating empty signal, shots, and time arrays
@@ -251,7 +251,7 @@ def read_header(channel_info, buffer, sep):
             'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
             'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
             'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
-            'licel_id']
+            'channel_id']
     
     arr_head = pd.DataFrame(header, index = channel_ID, columns = cols, 
                             dtype = object)
@@ -260,7 +260,7 @@ def read_header(channel_info, buffer, sep):
                     'pmt_high_voltage', 'range_resolution', 
                     'data_acquisition_range', 'analog_to_digital_resolution']
     
-    channel_info.loc[:, 'licel_id'] = arr_head.loc[:, 'licel_id'].copy().values
+    channel_info.loc[:, 'channel_id'] = arr_head.loc[:, 'channel_id'].copy().values
     channel_info.loc[:, info_columns] = arr_head.loc[:, info_columns].copy().values.astype(float)
 
     mask_an = channel_info.loc[:,'acquisition_mode'].values == 0
@@ -291,7 +291,7 @@ def read_shots(buffer, sep):
             'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
             'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
             'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
-            'licel_id']
+            'channel_id']
     
     
     ind_shots = np.where(np.array(cols) == 'shots')[0][0]
