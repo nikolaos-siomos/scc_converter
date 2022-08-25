@@ -192,7 +192,7 @@ def dark(finput, mcode, file_format):
     return(sig, shots, meas_info, channel_info, time_info)
 
 
-def radiosonde(finput, delimiter, skip_header, skip_footer, usecols):
+def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
 
     """Extracts the meteorological information out of the 
     raw radiosonde file."""
@@ -207,6 +207,19 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols):
     lib_delimiter =  {"S": "",
                       "C": ",",
                       "T": "\t"}
+    
+    # Unit conversion functions
+    def Km_to_m(x):
+        return(1E3 * x)
+    
+    def Pa_to_hPa(x):
+        return(1E-3 * x)
+    
+    def C_to_K(x):
+        return(x + 273.16)
+
+    def fraction_to_percent(x):
+        return(100. * x)
     
     if len(path) > 1:
         sys.exit("-- Error: More than one txt files provided in the radiosonde folder! Please provide a single file with the radiosonde data with the following filename: yyyymmddhh<any_text>.txt ")
@@ -225,18 +238,37 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols):
             or int(date[4:6]) not in np.arange(0,60,1):
         sys.exit("-- Error: The time provided in the radiosond filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
         
+
+    if usecols[3] == None:
+        parameters = ['P', 'T']
+        usecols = usecols[:3]
+
+    else:
+        parameters = ['P', 'T', 'RH']
+        
+        
     data = np.genfromtxt(path[0],skip_header = skip_header, 
                          skip_footer = skip_footer,
                          delimiter = lib_delimiter[delimiter], 
                          autostrip = True,
                          usecols = np.array(usecols) - 1, dtype = float)
 
-    if len(usecols) == 3:
-        parameters = ['P', 'T']
-    if len(usecols) == 4:
-        parameters = ['P', 'T', 'RH']
 
+    # Change units if they are not the default ones (m, hPa, K, %)
+    if units[0] == 'Km':
+        data[:,0] = Km_to_m(data[:,0])
+        
+    if units[1] == 'Pa':
+        data[:,1] = Pa_to_hPa(data[:,1])    
+
+    if units[2] == 'C':
+        data[:,2] = C_to_K(data[:,2]) 
+    
+    if units[3] == 'fraction' and len(usecols) == 4:
+        data[:,3] = fraction_to_percent(data[:,3])     
+        
     alt = data[:,0]
+    
     atmo = xr.DataArray(data[:,1:], 
                         coords = [alt, parameters], 
                         dims = ['height', 'parameters'] )

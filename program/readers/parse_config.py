@@ -87,17 +87,21 @@ def parse_config():
                         type=str, nargs='?', default = 'S',
                         help="The dilimiter that separates columns in the radiosonde file choose one of S: space, C: comma. Defaults to S!")   
     
-    parser.add_argument('--rsonde_column_index', metavar='rsonde_delimiter', 
+    parser.add_argument('--rsonde_column_index', metavar='rsonde_column_index', 
                         type=int, nargs='+', default = [1, 2, 3, None], 
                         help="The column number of Height, Pressure, Temperature, and Relative Humidity (optional) columns in the radiosonde file. For example: --rsonde_columns 1 3 2 6 means height: 1st column, temperature: 3rd column, pressure: 2nd column, relative humidity: 6th column. The relative humidity column is OPTIONAL and can be omitted! Defaults to 1 2 3")   
-                                                              
+
+    parser.add_argument('--rsonde_column_units', metavar='rsonde_column_units', 
+                        type=str, nargs='+', default = ['m', 'hPa', 'K', 'percent'], 
+                        help="The units of Height, Pressure, Temperature, and Relative Humidity (optional) columns in the radiosonde file. Supported units for height: m (default), Km | for pressure: Pa, hPa (default) | for temperature: C, K (default) | for relative humidity: fraction, percent (default). For example: --rsonde_column_units Km Pa C fraction ")   
+                                                                                     
     parser.add_argument('--rsonde_geodata', metavar='rsonde_geodata', 
                         type=float, nargs=3, default = [None, None, None], 
                         help="The radiosonde station latitude, longitude, and altitude. Mandatory if the mode is set to S. For example: --rsonde_geodata 40.5 22.9 60.0 ")   
 
     parser.add_argument('--trim_overflows', metavar='trim_overflows', 
                         type=int, nargs='?', default = 0, 
-                        help="This options determines how overflow values will be treated. If set to 0 (default), no action will be taken, if set to 1 the files containing at least one overflow value will be screened out. If set to 2, overflow will be interpolated (use with care and only for a few bins per profile)")   
+                        help="This options determines how overflow values will be treated. If set to 0 (default), no action will be taken, if set to 1 the files containing at least one overflow value will be screened out. If set to 2, overflow will be interpolated (use with care and only for a few bins per profile). If set to 3 then overflows will be included, use this only for debuging purposes")   
                 
 
     args = vars(parser.parse_args())
@@ -115,14 +119,26 @@ def parse_config():
     for i in range(len(mandatory_args)):
         if not args[mandatory_args[i]]:
             print(f'-- Error: The mandatory argument {mandatory_args[i]} is not provided! Please provide it with: {mandatory_args_abr[i]} <path>')
-            sys.exit('-- Program stopped')            
+            sys.exit('-- Program stopped')   
+    
 
-    print("-- The following values have been used!")
+    if len(args['rsonde_column_index']) == 3:
+        rsonde_column_index = args['rsonde_column_index']
+        rsonde_column_index.extend([None])
+        args['rsonde_column_index'] = rsonde_column_index
+
+    if len(args['rsonde_column_units']) == 3:
+        rsonde_column_units = args['rsonde_column_units']
+        rsonde_column_units.extend([None])
+        args['rsonde_column_units'] = rsonde_column_units
+        
+    print("-- The following arguments have been imported!")
     print("-------------------------------------------------------------------")
     for key in args.keys():
         print(f"{key} = {args[key]}")
     print("-------------------------------------------------------------------")
-
+    print("")
+    
     if not os.path.exists(args['config_file']):
         sys.exit(f"-- Error: Path to the configuration file does not exists (defaults to <parent_folder>/config_file.ini). Path: {args['config_file']}!")  
 
@@ -141,8 +157,17 @@ def parse_config():
     if args['mode'] not in ['A', 'R', 'T', 'C', 'D', 'S']:
         sys.exit(f"-- Error: mode field not recognized. Please revise the settings file and use one of {['A', 'R', 'T', 'C', 'D', 'S']} with: -M <mode>")
 
-    if len(args['rsonde_column_index']) not in [3, 4]:
+    if len(args['rsonde_column_index']) != 4:
         sys.exit("-- Error: rsonde_column_index field has less or more elements than expected. Please provide 3 or 4 integer eg: --rsonde_column_index 1 2 3")
+
+    if len(args['rsonde_column_units']) != 4:
+        sys.exit("-- Error: rsonde_column_unit field has less or more elements than expected. Please provide 3 or 4 strings eg: --rsonde_column_units Km Pa C ")
+
+    if args['rsonde_column_units'][0] not in ['m', 'Km'] or \
+        args['rsonde_column_units'][1] not in ['Pa', 'hPa'] or \
+            args['rsonde_column_units'][2] not in ['C', 'K'] or \
+                args['rsonde_column_units'][3] not in ['fraction', 'percent', None] :
+                    sys.exit("-- Error: rsonde_column_unit field values were not recognized. Please provide on of [m, Km] for height, [Pa, hPa] for pressure, [C, K] for temperature, and [fraction, percent] for relative humidity (optional)")
 
     if len(args['rsonde_geodata']) != 3:
         sys.exit("-- Error: rsonde_geodata field has less or more elements than expected. Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")

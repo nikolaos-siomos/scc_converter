@@ -35,11 +35,11 @@ def rayleigh(args):
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
-        sig_raw_d, shots_d, channel_info_d = \
-            modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
+        sig_raw_d, shots_d, channel_info_d, cfg = \
+            modify.trim_channels(cfg = cfg, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
     
-    sig_raw, shots, channel_info = \
-        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'ray')
+    sig_raw, shots, channel_info, cfg = \
+        modify.trim_channels(cfg = cfg, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'ray')
   
     # Add the information from the raw file headers to the configuration object
     if not isinstance(sig_raw_d,list):
@@ -57,11 +57,13 @@ def rayleigh(args):
 
 
     # Detect and Screen Overflows
-    sig_raw, shots, time_info = detect_overflows(sig = sig_raw.copy(), 
-                                                 shots = shots.copy(),
-                                                 channel_info = cfg.channels,
-                                                 time_info = time_info,
-                                                 method = args['trim_overflows'])
+    sig_raw, shots, time_info = \
+        detect_overflows(sig = sig_raw.copy(), 
+                         shots = shots.copy(),
+                         channel_info = cfg.channels,
+                         time_info = time_info,
+                         method = args['trim_overflows'],
+                         meas_type = 'ray')
 
     # Detect and Screen Overflows for the dark
     if not isinstance(sig_raw_d,list):
@@ -70,8 +72,9 @@ def rayleigh(args):
                              shots = shots_d.copy(),
                              channel_info = cfg.channels,
                              time_info = time_info_d,
-                             method = args['trim_overflows'])
-    
+                             method = args['trim_overflows'],
+                             meas_type = 'drk')    
+            
     # Creating the measurement ID
     meas_ID = make.meas_id(lr_id = cfg.meas['lidar_id'], time = sig_raw.time)
           
@@ -85,7 +88,7 @@ def rayleigh(args):
                        nc_path = nc_path, meas_ID = meas_ID,  
                        P = args['ground_pressure'], 
                        T = args['ground_temperature'], 
-                       rsonde = args['radiosonde_filename'], 
+                       radiosonde_file = args['radiosonde_filename'], 
                        sig = sig_raw, sig_d = sig_raw_d,
                        shots = shots, shots_d = shots_d)
 
@@ -127,11 +130,11 @@ def telecover(args):
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
-        sig_raw_d, shots_d, channel_info_d = \
-            modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
+        sig_raw_d, shots_d, channel_info_d, cfg = \
+            modify.trim_channels(cfg = cfg, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
     
-    sig_raw, shots, channel_info = \
-        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'tlc')
+    sig_raw, shots, channel_info, cfg = \
+        modify.trim_channels(cfg = cfg, sig = sig_raw, shots = shots, channel_info = channel_info, meas_type = 'tlc')
   
     # Add the information from the raw file headers to the configuration object
     if not isinstance(sig_raw_d,list):
@@ -149,12 +152,14 @@ def telecover(args):
 
 
     # Detect and Screen Overflows
-    sig_raw, shots, time_info = detect_overflows(sig = sig_raw.copy(), 
-                                                 shots = shots.copy(),
-                                                 channel_info = cfg.channels,
-                                                 time_info = time_info,
-                                                 method = args['trim_overflows'])
-
+    sig_raw, shots, time_info = \
+        detect_overflows(sig = sig_raw.copy(), 
+                         shots = shots.copy(),
+                         channel_info = cfg.channels,
+                         time_info = time_info,
+                         method = args['trim_overflows'],
+                         meas_type = 'tlc')
+        
     # Detect and Screen Overflows for the dark
     if not isinstance(sig_raw_d,list):
         sig_raw_d, shots_d, time_info_d = \
@@ -162,8 +167,8 @@ def telecover(args):
                              shots = shots_d.copy(),
                              channel_info = cfg.channels,
                              time_info = time_info_d,
-                             method = args['trim_overflows'])
-    
+                             method = args['trim_overflows'],
+                             meas_type = 'drk')    
     # Creating the measurement ID
     meas_ID = make.meas_id(lr_id = cfg.meas['lidar_id'], time = sig_raw.time)
           
@@ -240,12 +245,14 @@ def calibration(args):
     sig_raw = modify.unit_conv_bits_to_mV(channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Detect and Screen Overflows
-    sig_raw, shots, time_info = detect_overflows(sig = sig_raw.copy(), 
-                                                 shots = shots.copy(),
-                                                 channel_info = cfg.channels,
-                                                 time_info = time_info,
-                                                 method = args['trim_overflows'])
-
+    sig_raw, shots, time_info = \
+        detect_overflows(sig = sig_raw.copy(), 
+                         shots = shots.copy(),
+                         channel_info = cfg.channels,
+                         time_info = time_info,
+                         method = args['trim_overflows'],
+                         meas_type = 'pcl')
+        
     # Detect and Screen Overflows for the dark
     if not isinstance(sig_raw_d,list):
         sig_raw_d, shots_d, time_info_d = \
@@ -253,8 +260,9 @@ def calibration(args):
                              shots = shots_d.copy(),
                              channel_info = cfg.channels,
                              time_info = time_info_d,
-                             method = args['trim_overflows'])
-    
+                             method = args['trim_overflows'],
+                             meas_type = 'drk')
+            
     # Creating the measurement ID
     meas_ID = make.meas_id(lr_id = cfg.meas['lidar_id'], time = sig_raw.time)
           
@@ -268,7 +276,7 @@ def calibration(args):
                           nc_path = nc_path, meas_ID = meas_ID, 
                           P = args['ground_pressure'], 
                           T = args['ground_temperature'], 
-                          rsonde = args['radiosonde_filename'],
+                          radiosonde_file = args['radiosonde_filename'],
                           rayleigh = args['rayleigh_filename'],  
                           sig = sig_raw, sig_d = sig_raw_d,
                           shots = shots, shots_d = shots_d)
@@ -300,11 +308,11 @@ def dark(args):
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
         read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
 
+    # Remove channels that should be excluded according to the configuration file
+    sig_raw_d, shots_d, channel_info_d, cfg = \
+        modify.trim_channels(cfg = cfg, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
+    
 
-     # Remove channels that should be excluded according to the configuration file
-    sig_raw_d, shots_d, channel_info_d = \
-        modify.trim_channels(channel_info_cfg = cfg.channels, sig = sig_raw_d, shots = shots_d, channel_info = channel_info_d, meas_type = 'drk')
-        
     # Add the information from the raw file headers to the configuration object
     cfg = modify.merge_config(cfg = cfg, meas_info = meas_info_d, channel_info = channel_info_d)
 
@@ -320,7 +328,8 @@ def dark(args):
                          shots = shots_d.copy(),
                          channel_info = cfg.channels,
                          time_info = time_info_d,
-                         method = args['trim_overflows'])
+                         method = args['trim_overflows'],
+                         meas_type = 'drk')
     
     # Creating the measurement ID
     meas_ID = make.meas_id(lr_id = cfg.meas['lidar_id'], time = sig_raw_d.time)
@@ -355,12 +364,14 @@ def radiosonde(args):
     skip_header = args['rsonde_skip_header']
     skip_footer = args['rsonde_skip_footer']
     usecols = args['rsonde_column_index']
+    units = args['rsonde_column_units']
     geodata = args['rsonde_geodata']
     
     date, time, atmo = read_files.radiosonde(path, delimiter = delimiter, 
                                              skip_header = skip_header, 
                                              skip_footer = skip_footer, 
-                                             usecols = usecols)
+                                             usecols = usecols,
+                                             units = units)
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])
     

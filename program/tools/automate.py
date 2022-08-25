@@ -159,7 +159,7 @@ def check_calibration(path):
 
     return()
 
-def detect_overflows(sig, shots, channel_info, time_info, method = 0):
+def detect_overflows(sig, shots, channel_info, time_info, meas_type, method = 0):
 
     """
     General:
@@ -198,6 +198,10 @@ def detect_overflows(sig, shots, channel_info, time_info, method = 0):
             filename: 
                 The raw file filename. 
         
+        meas_type: 
+            A 3 letter identifier that specifies the measurement type,
+            it can be one of ray, tlc, pcl, drk        
+        
         method:
             An integer. If set to 0 only the check for overflows will be 
             performed and an error will be raised if a single value is 
@@ -219,11 +223,15 @@ def detect_overflows(sig, shots, channel_info, time_info, method = 0):
                 
                 method = 2 : only sig changes, overflowed values are replaced
                              by interpolated values from the surrounding bins
-            
+
+                method = 3 : do nothing about it, use only while debugging            
     """
     
+    meas_label = {'ray': 'Rayleigh', 'tlc' : 'Telecover',
+                  'pcl': 'Polarization Calibration', 'drk': 'Dark'}
+    
     print('-----------------------------------------')
-    print('Handling overflow values...')
+    print(f'Handling {meas_label[meas_type]} overflow values...')
     print('-----------------------------------------')
     
     acquisition_mode = channel_info.acquisition_mode
@@ -239,7 +247,7 @@ def detect_overflows(sig, shots, channel_info, time_info, method = 0):
 
         overflow_method_0(mask = mask, filename = filename)
             
-    if method == 1 and mask.any(): # Remove the problematic profiles
+    elif method == 1 and mask.any(): # Remove the problematic profiles
     
         sig, shots, time_info = overflow_method_1(sig = sig.copy(), 
                                                   shots = shots.copy(),
@@ -248,14 +256,24 @@ def detect_overflows(sig, shots, channel_info, time_info, method = 0):
                                                   filename = filename)
         print("Profiles with overflowed bin were succesfully removed!")
         
-    if method == 2 and mask.any(): # Replace the overflowed values with interpolated ones from the nearby bins
+    elif method == 2 and mask.any(): # Replace the overflowed values with interpolated ones from the nearby bins
         
         sig = overflow_method_2(sig = sig.copy(), 
                                 mask = mask, 
                                 filename = filename)
         print("Overflowed were succesfully replaced!")
     
+    elif method == 3 and mask.any():
 
+        print("-- Warning: Overflows were detected but no action has been performed! Use trim_overflows to 3 only when debugging!")
+
+    elif not mask.any():
+        
+        print("No bins with overflows have been encountered!")
+    
+    print('-----------------------------------------')
+    print("")
+     
 
     return(sig, shots, time_info)
 

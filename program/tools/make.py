@@ -12,7 +12,7 @@ import numpy as np
 
 def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
                   meas_ID, sig, sig_d, shots, shots_d, 
-                  P = None, T = None, rsonde = None):
+                  P = None, T = None, radiosonde_file = None):
 
     print('-----------------------------------------')
     print('Start exporting to a Rayleigh QA file...')
@@ -66,10 +66,6 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     ds.createDimension('nchar_filename',15)
     if not isinstance(sig_d,list):  
         ds.createDimension('time_bck', n_time_bck)
-        
-    if radiosonde_file:
-        
-        ds.Sounding_File_Name = rsonde;
     
 # Adding Global Parameters
     ds.Altitude_meter_asl = meas_info.altitude;
@@ -81,6 +77,10 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     ds.Measurement_ID = meas_ID;
 
     ds.Measurement_type = 'ray';
+
+    if radiosonde_file:
+       
+       ds.Sounding_File_Name = radiosonde_file;
     
     if not isinstance(sig_d,list):
 
@@ -126,7 +126,7 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
         
-    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
@@ -294,7 +294,7 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
                 
-    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
@@ -342,7 +342,7 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
 def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
                      meas_ID, sig, sig_d, shots, shots_d, molecular_calc = [], 
-                     P = [], T = [], rsonde = [], rayleigh = []):
+                     P = [], T = [], radiosonde_file = None, rayleigh = []):
 
     print('-----------------------------------------')
     print('Start exporting to a Calibration QA file...')
@@ -408,6 +408,10 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     ds.Measurement_ID = meas_ID;
     
     ds.Measurement_type = 'pcl';
+
+    if radiosonde_file:
+       
+       ds.Sounding_File_Name = radiosonde_file;
     
     if not isinstance(sig_d,list):
 
@@ -453,7 +457,7 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
                 
-    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
@@ -495,28 +499,17 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     
         make_nc_var(ds, name = 'Bck_Data_Stop_Time', value = Bck_Stop_Time, dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
     
-    if isinstance(molecular_calc, list) == False:
+    if radiosonde_file:
     
-        make_nc_var(ds, name = 'Molecular_Calc', value = molecular_calc, dtype = 'int')
+        make_nc_var(ds, name = 'Molecular_Calc', value = 1, dtype = 'int')
     
-        if molecular_calc == 4 or molecular_calc == 0:
-            
-            if isinstance(P,list):
-                sys.exit('-- Error: The ground pressure must be provided in the make.file routine when molecular_calc = 4 (USSTD selected) or 0 (automatic selected)')
-       
-            if isinstance(T,list):
-                sys.exit('-- Error: The ground temperature must be provided in the make.file routine when molecular_calc = 4 (USSTD selected) or 0 (automatic selected)')
-       
-            make_nc_var(ds, name = 'Pressure_at_Lidar_Station', value = P, dtype = 'float')
-            
-            make_nc_var(ds, name = 'Temperature_at_Lidar_Station', value = T, dtype = 'float')
-            
-        if molecular_calc == 1:
-            
-            if isinstance(rsonde,list):
-                sys.exit('-- Error: The radiosonde filenmame must be provided in the make.file routine when molecular_calc = 1 (Radiosonde selected)')
-       
-            ds.Sounding_File_Name = rsonde;
+    else:
+        
+        make_nc_var(ds, name = 'Molecular_Calc', value = 0, dtype = 'int')
+        
+        make_nc_var(ds, name = 'Pressure_at_Lidar_Station', value = P, dtype = 'float')
+        
+        make_nc_var(ds, name = 'Temperature_at_Lidar_Station', value = T, dtype = 'float')
 
     if isinstance(rayleigh, list) == False:
         
@@ -611,7 +604,7 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
                 
-    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
