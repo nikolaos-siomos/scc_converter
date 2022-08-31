@@ -9,8 +9,10 @@ from tools import process, automate
 
 # -f "/mnt/DATA/LRZ_Sync/CARS-LMU (Volker Freudenthaler)/data/EVE/20220617" -i EV -d --trim_overflows 3 -M R
 
+# -f /home/nick/Downloads/Raw_LICEL -i OT -d --trim_overflows 0 -M A --rsonde_skip_header 6 --rsonde_skip_footer 0 --rsonde_delimiter S --rsonde_column_index 2 1 3 5 --rsonde_geodata 40.500 22.900 0 
 # -f /mnt/DATA/Big_data/Databases/POLIS/data/181016 -n 20 -i m --rsonde_skip_header 35 --rsonde_skip_footer 8 --rsonde_delimiter S --rsonde_column_index 2 1 3 5 --rsonde_geodata 38.002 -1.171 61 -d --trim_overflows 2 -M C -l ray_20181016mun2024.nc
 
+# -f /mnt/DATA/Big_data/Databases/POLIS/data/181016 -n 20 -i m --rsonde_skip_header 35 --rsonde_skip_footer 8 --rsonde_delimiter S --rsonde_column_index 2 1 3 5 --rsonde_column_units m hPa C percent --rsonde_geodata 38.002 -1.171 61 -d --trim_overflows 1 -M S -l ray_20181016mun2024.nc
 # Ignores all warnings --> they are not printed in terminal
 warnings.filterwarnings('ignore')
 

@@ -85,15 +85,18 @@ def check_telecover(path, files_per_sector):
                   'The generated telecover files will not be compatible with ATLAS!')
     
         if any(dir_i not in allowed_folders for dir_i in list_dirs):
-            sys.exit(f'-- Error: The ./telecover folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
+            sys.exit('-- Error: The ./telecover folder contains at least ' +
+                     'one directory that is different from the expected ones ' +
+                     f'({allowed_folders}). Please make sure only the allowed '+
+                     'directories exist there')
               
         if files_per_sector:
             
             if 'sectors' not in list_dirs:
-                sys.exit('-- Error: The ./telecover/sectors folder was not detected '+
-                         'in the telecover folder. All sector files must be '+
-                         'provide in this folder when the files_per_sector '+
-                         'argument is used!')
+                sys.exit('-- Error: The ./telecover/sectors folder was not ' +
+                         'detected in the telecover folder. All sector files ' +
+                         'must be provide in this folder when the ' + 
+                         'files_per_sector argument is used!')
                 
         else:
     
@@ -121,9 +124,12 @@ def check_telecover(path, files_per_sector):
                          'in ./telecover/sectors folder. Please provide either '+
                          'all of north east south west or both of '+
                          'inner outer folders') 
-                
-            if any(dir_i not in allowed_sfolders for dir_i in list_dirs):
-                sys.exit(f'-- Error: The ./telecover/sectors folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
+            
+            if any(dir_i not in allowed_sfolders for dir_i in list_sdirs):
+                sys.exit('-- Error: The ./telecover/sectors folder contains ' +
+                         'at least one directory that is different from the ' +
+                         f'expected ones ({allowed_sfolders}). Please make ' +
+                         'sure only the allowed directories exist there')
   
     return()
 
@@ -399,8 +405,7 @@ def overflow_method_2(sig, mask, filename):
     
     sig = sig.copy().where(~mask)
     
-    sig_out = sig.copy().interpolate_na(dim = "bins", method = "linear", 
-                                        fill_value = "extrapolate")
+    sig_out = sig.copy().interpolate_na(dim = "bins", method = "linear")
 
     print(f"-- Warning: {np.sum(mask).values} overflows have been replaced by interpolating across the bins ")
     

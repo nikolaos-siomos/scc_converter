@@ -74,6 +74,10 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     ds.Longitude_degrees_east = meas_info.longitude;
   
+    ds.Lidar_Name = meas_info.lidar_name;
+
+    ds.Lidar_ID = meas_info.lidar_id;
+
     ds.Measurement_ID = meas_ID;
 
     ds.Measurement_type = 'ray';
@@ -130,7 +134,7 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
-    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
@@ -245,6 +249,10 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     ds.Latitude_degrees_north = meas_info.latitude;
 
     ds.Longitude_degrees_east = meas_info.longitude;
+
+    ds.Lidar_Name = meas_info.lidar_name;
+
+    ds.Lidar_ID = meas_info.lidar_id;
   
     ds.Measurement_ID = meas_ID;
 
@@ -298,7 +306,7 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
-    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
@@ -404,6 +412,10 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     ds.Latitude_degrees_north = meas_info.latitude;
 
     ds.Longitude_degrees_east = meas_info.longitude;
+
+    ds.Lidar_Name = meas_info.lidar_name;
+
+    ds.Lidar_ID = meas_info.lidar_id;
   
     ds.Measurement_ID = meas_ID;
     
@@ -461,7 +473,7 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
-    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
@@ -566,6 +578,10 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
     ds.Latitude_degrees_north = meas_info.latitude;
 
     ds.Longitude_degrees_east = meas_info.longitude;
+
+    ds.Lidar_Name = meas_info.lidar_name;
+
+    ds.Lidar_ID = meas_info.lidar_id;
   
     ds.Measurement_ID = meas_ID;
     
@@ -608,7 +624,7 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
-    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'int', dims = ('channels',))
+    make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 

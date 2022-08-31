@@ -376,7 +376,7 @@ def radiosonde(args):
     cfg = config(path = args['config_file'])
     
     # Reading radiosonde geodata with the lidar station values if a geodata argument is not provided  
-    if any([not geodata_i for geodata_i in geodata]):
+    if any([geodata_i == None for geodata_i in geodata]):
         sys.exit("-- Error: The rsonde_geodata field is mandatory when processing a radiosonde file (mode = A and the radiosonde folder exists). Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
 
     # Creating the radiosonde ID
