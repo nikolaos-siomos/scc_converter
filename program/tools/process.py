@@ -10,12 +10,13 @@ from readers.read_config import config
 import os, sys
 from readers import read_files
 from tools import modify, make
-from tools.automate import check_rayleigh, check_telecover, check_calibration, detect_overflows
+from tools.automate import check_rayleigh, check_telecover
+from tools.automate import check_polarization_calibration, detect_overflows
 
 def rayleigh(args):
    
-    path = os.path.join(args['parent_folder'],'rayleigh')
-    path_d = os.path.join(args['parent_folder'],'rayleigh','dark')
+    path = os.path.join(args['parent_folder'],'ray')
+    path_d = os.path.join(args['parent_folder'],'ray','dark')
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     
@@ -48,6 +49,11 @@ def rayleigh(args):
 
     # Add default values to the configuration object when the respective variables are not provided in the configuration file
     cfg = modify.fill_defaults(cfg)
+
+    # Screen profiles that have an iregularly low number of shots
+    if not isinstance(sig_raw_d,list):
+        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -108,14 +114,16 @@ def rayleigh(args):
 
 def telecover(args):
     
-    path = os.path.join(args['parent_folder'],'telecover')
-    path_d = os.path.join(args['parent_folder'],'telecover','dark')
+    path = os.path.join(args['parent_folder'],'tlc')
+    path_d = os.path.join(args['parent_folder'],'tlc','dark')
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     files_per_sector = args['files_per_sector']
+    files_per_ring = args['files_per_ring']
 
     # Checking the telecover folder    
-    check_telecover(path, files_per_sector = files_per_sector)
+    check_telecover(path, files_per_sector = files_per_sector, 
+                    files_per_ring = files_per_ring)
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
@@ -126,7 +134,7 @@ def telecover(args):
     
     # Read the files in the telecover folder
     sig_raw, shots, meas_info, channel_info, time_info = \
-        read_files.telecover(finput = path, file_format = file_format, mcode = mcode, files_per_sector = files_per_sector)
+        read_files.telecover(finput = path, file_format = file_format, mcode = mcode, files_per_sector = files_per_sector, files_per_ring = files_per_ring)
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
@@ -143,6 +151,11 @@ def telecover(args):
 
     # Add default values to the configuration object when the respective variables are not provided in the configuration file
     cfg = modify.fill_defaults(cfg)
+
+    # Screen profiles that have an iregularly low number of shots
+    if not isinstance(sig_raw_d,list):
+        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -197,15 +210,15 @@ def telecover(args):
     
     return(nc_path)
 
-def calibration(args):
+def polarization_calibration(args):
    
-    path = os.path.join(args['parent_folder'],'calibration')
-    path_d = os.path.join(args['parent_folder'],'calibration','dark')
+    path = os.path.join(args['parent_folder'],'pcl')
+    path_d = os.path.join(args['parent_folder'],'pcl','dark')
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     
     # Checking the calibration folder    
-    check_calibration(path)
+    check_polarization_calibration(path)
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
@@ -220,7 +233,7 @@ def calibration(args):
 
     # Read the files in the calibration folder
     sig_raw, shots, meas_info, channel_info, time_info = \
-        read_files.calibration(path, file_format = file_format, mcode = mcode)
+        read_files.polarization_calibration(path, file_format = file_format, mcode = mcode)
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
@@ -237,6 +250,11 @@ def calibration(args):
 
     # Add default values to the configuration object when the respective variables are not provided in the configuration file
     cfg = modify.fill_defaults(cfg)
+
+    # Screen profiles that have an iregularly low number of shots
+    if not isinstance(sig_raw_d,list):
+        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -270,16 +288,16 @@ def calibration(args):
     nc_path = make.path(results_folder = args['results_folder'], meas_ID = meas_ID, meas_type = 'pcl')
     
     # Making the raw SCC file
-    make.calibration_file(meas_info = cfg.meas.copy(), 
-                          channel_info = cfg.channels.copy(), 
-                          time_info = time_info, time_info_d = time_info_d,
-                          nc_path = nc_path, meas_ID = meas_ID, 
-                          P = args['ground_pressure'], 
-                          T = args['ground_temperature'], 
-                          radiosonde_file = args['radiosonde_filename'],
-                          rayleigh = args['rayleigh_filename'],  
-                          sig = sig_raw, sig_d = sig_raw_d,
-                          shots = shots, shots_d = shots_d)
+    make.polarization_calibration_file(meas_info = cfg.meas.copy(), 
+                                       channel_info = cfg.channels.copy(), 
+                                       time_info = time_info, time_info_d = time_info_d,
+                                       nc_path = nc_path, meas_ID = meas_ID, 
+                                       P = args['ground_pressure'], 
+                                       T = args['ground_temperature'], 
+                                       radiosonde_file = args['radiosonde_filename'],
+                                       rayleigh = args['rayleigh_filename'],  
+                                       sig = sig_raw, sig_d = sig_raw_d,
+                                       shots = shots, shots_d = shots_d)
 
     # Creating debugging files from the configuration and licel input
     if args['debug']:
@@ -297,7 +315,7 @@ def calibration(args):
 
 def dark(args):
    
-    path_d = os.path.join(args['parent_folder'],'dark')
+    path_d = os.path.join(args['parent_folder'],'drk')
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     
@@ -318,6 +336,9 @@ def dark(args):
 
     # Add default values to the configuration object when the respective variables are not provided in the configuration file
     cfg = modify.fill_defaults(cfg)
+
+    # Screen profiles that have an iregularly low number of shots
+    sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     sig_raw_d = modify.unit_conv_bits_to_mV(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
@@ -358,7 +379,7 @@ def dark(args):
 
 def radiosonde(args):
    
-    path = os.path.join(args['parent_folder'],'radiosonde')
+    path = os.path.join(args['parent_folder'],'rs')
     
     delimiter = args['rsonde_delimiter']
     skip_header = args['rsonde_skip_header']

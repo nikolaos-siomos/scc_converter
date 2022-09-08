@@ -19,24 +19,25 @@ warnings.filterwarnings('ignore')
 # Get the command line argument information
 args = parse_config()
 
-# Identify the measurement type (rayleigh , telecover, or calibration)    
+# Identify the measurement type (rayleigh , telecover, or polarization_calibration)    
 meas_type = automate.get_meas_type(path = args['parent_folder'])
      
 # In[1]
 #------------------------------------------------------------
 # A) Read and pre-process the signals
 #------------------------------------------------------------
-allowed_types = ['radiosonde', 'rayleigh', 'telecover', 'calibration', 'dark'] 
+allowed_types = ['radiosonde', 'rayleigh', 'telecover', 
+                 'polarization_calibration', 'dark'] 
 allowed_modes = ['S', 'R', 'T', 'C', 'D']
 processors = {'radiosonde' : process.radiosonde,
               'rayleigh' : process.rayleigh,
               'telecover' : process.telecover,
-              'calibration' : process.calibration,
+              'polarization_calibration' : process.polarization_calibration,
               'dark' : process.dark}
 modes = {'radiosonde' : 'S',
          'rayleigh' : 'R',
          'telecover' : 'T',
-         'calibration' : 'C',
+         'polarization_calibration' : 'C',
          'dark' : 'D'}
 
 # Call all the processors sequentially
@@ -49,7 +50,7 @@ for mtype in allowed_types:
         if mtype == 'radiosonde' and not args['radiosonde_filename']:
             args['radiosonde_filename'] = os.path.basename(nc_fname)
         
-        if mtype == 'rayleigh' and not args['rayleigh_filename'] and 'calibration' in meas_type:
+        if mtype == 'rayleigh' and not args['rayleigh_filename'] and 'polarization_calibration' in meas_type:
             args['rayleigh_filename'] = os.path.basename(nc_fname)
     
     elif mtype not in meas_type and args['mode'] == 'A':

@@ -18,9 +18,13 @@ def dtfs(dir_meas, mcode):
     end_time_arr = []
     filename = []
     
+    meas_info = []
+    channel_info = []
+    time_info = []
+    
     if not(os.path.exists(dir_meas)):
-        print('---- Error : The folder for reading signals does not exist! \r\n' +\
-              f'---- Check the input directory! \n Given folder: {dir_meas}')
+        print('---- Warning : The folder for reading signals does not exist! '+\
+              f'Check the input directory! \n Given folder: {dir_meas}')
     
     else:
         

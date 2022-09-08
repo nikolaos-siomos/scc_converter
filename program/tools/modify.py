@@ -108,3 +108,29 @@ def unit_conv_bits_to_mV(channel_info, signal, shots):
             signal.loc[ch_d] = signal.loc[ch_d]*data_acquisition_range.loc[ch]/(shots.loc[ch_d]*(np.power(2,analog_to_digital_resolution.loc[ch])-1.))
     
     return(signal) 
+
+def screen_low_shots(channel_info, signal, shots):
+
+    """Replaces values in all bins with nans if the numer of shots is
+    lower than 10% of the maximum """
+    
+    
+    if len(signal) > 0:
+        time = signal.copy().time.values
+                
+        channel_id = channel_info.index.values
+                
+        for ch in channel_id:
+            ch_d = dict(channel = ch)
+            
+            shots_ch = shots.loc[ch_d].values
+            
+            mask_t = shots_ch < 0.9 * np.nanmax(shots_ch)
+            
+            t_d = dict(time = time[mask_t])
+            
+            signal.loc[ch_d].loc[t_d] = np.nan
+
+            shots.loc[ch_d].loc[t_d] = np.nan
+            
+    return(signal) 

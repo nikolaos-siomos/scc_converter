@@ -59,9 +59,13 @@ def parse_config():
                         type=str, nargs='?', default = 273.15,
                         help='The atmospheric temperature in the lidar station in K. Defaults to 293.15 K')            
 
-    parser.add_argument('-n', '--files_per_sector', metavar='files_per_sector', 
+    parser.add_argument('-n_sector', '--files_per_sector', metavar='files_per_sector', 
                         type=int, nargs='?', default = None,
-                        help='The number of telecover files per sector. If this values is provided for a telecover measurement all telecover measurements must be placed into the telecover folder inside the parent folder')            
+                        help='The number of telecover files per sector. If called, an automated assignment of the telecover files in different sectors will be attempted serially')            
+    
+    parser.add_argument('-n_ring', '--files_per_ring', metavar='files_per_ring', 
+                        type=int, nargs='?', default = None,
+                        help='The number of telecover files per ring. If called, an automated assignment of the telecover files in different rings will be attempted serially')            
     
     parser.add_argument('-i', '--measurement_identifier', metavar='measurement_identifier', 
                         type=str, nargs='?', default = '',

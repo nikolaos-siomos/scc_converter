@@ -128,17 +128,18 @@ def rayleigh_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
 
-    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+    if not isinstance(sig_d,list):
+        make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
         
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
     make_nc_var(ds, name = 'id_timescale', value = np.zeros(n_channels), dtype = 'int', dims = ('channels',))
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
-    
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = np.array(n_scan_angles * [meas_info.zenith_angle]), dtype = 'float', dims = ('scan_angles',))
+
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = np.array(n_scan_angles * [meas_info.azimuth_angle]), dtype = 'float', dims = ('scan_angles',))
     
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
@@ -300,7 +301,8 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
 
-    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+    if not isinstance(sig_d,list):
+        make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
                 
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
@@ -308,10 +310,10 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = np.array(n_scan_angles * [meas_info.zenith_angle]), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
-    
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = np.array(n_scan_angles * [meas_info.azimuth_angle]), dtype = 'float', dims = ('scan_angles',))
+
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
     make_nc_var(ds, name = 'Laser_Polarization',  value = channel_info.laser_polarization.values, dtype = 'int', dims = ('channels',))
@@ -348,9 +350,10 @@ def telecover_file(meas_info, channel_info, time_info, time_info_d, nc_path,
     
     return()
 
-def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
-                     meas_ID, sig, sig_d, shots, shots_d, molecular_calc = [], 
-                     P = [], T = [], radiosonde_file = None, rayleigh = []):
+def polarization_calibration_file(
+        meas_info, channel_info, time_info, time_info_d, nc_path,
+        meas_ID, sig, sig_d, shots, shots_d, molecular_calc = [], 
+        P = [], T = [], radiosonde_file = None, rayleigh = []):
 
     print('-----------------------------------------')
     print('Start exporting to a Calibration QA file...')
@@ -467,7 +470,8 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_str(ds, name = 'Filename', value = time_info.filename.values, dims = ('time','nchar_filename'), length = 15)    
 
-    make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
+    if not isinstance(sig_d,list):
+        make_nc_str(ds, name = 'Filename_Bck', value = time_info_d.filename.values, dims = ('time_bck','nchar_filename'), length = 15)    
                 
     make_nc_var(ds, name = 'Full_Overlap_Range', value = channel_info.full_overlap_distance.values, dtype = 'float', dims = ('channels',))
     
@@ -475,10 +479,10 @@ def calibration_file(meas_info, channel_info, time_info, time_info_d, nc_path,
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = np.array(n_scan_angles * [meas_info.zenith_angle]), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
-    
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = np.array(n_scan_angles * [meas_info.azimuth_angle]), dtype = 'float', dims = ('scan_angles',))
+  
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time, n_nb_of_time_scales]), dtype = 'int', dims = ('time', 'nb_of_time_scales',))
 
     make_nc_var(ds, name = 'Laser_Polarization',  value = channel_info.laser_polarization.values, dtype = 'int', dims = ('channels',))
@@ -626,10 +630,10 @@ def dark_file(meas_info, channel_info, time_info_d, nc_path,
 
     make_nc_var(ds, name = 'Channel_Bandwidth', value = channel_info.channel_bandwidth.values, dtype = 'float', dims = ('channels',))
     
-    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = meas_info.zenith_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
+    make_nc_var(ds, name = 'Laser_Pointing_Angle', value = np.array(n_scan_angles * [meas_info.zenith_angle]), dtype = 'float', dims = ('scan_angles',))
 
-    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = meas_info.azimuth_angle*np.ones(n_scan_angles), dtype = 'float', dims = ('scan_angles',))
-    
+    make_nc_var(ds, name = 'Laser_Pointing_Azimuth_Angle', value = np.array(n_scan_angles * [meas_info.azimuth_angle]), dtype = 'float', dims = ('scan_angles',))
+
     make_nc_var(ds, name = 'Laser_Pointing_Angle_of_Profiles', value = np.zeros([n_time_bck, n_nb_of_time_scales]), dtype = 'int', dims = ('time_bck', 'nb_of_time_scales',))
 
     make_nc_var(ds, name = 'Laser_Polarization',  value = channel_info.laser_polarization.values, dtype = 'int', dims = ('channels',))

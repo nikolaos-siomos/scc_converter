@@ -37,7 +37,8 @@ def rayleigh(finput, mcode, file_format):
 
     return(sig, shots, meas_info, channel_info, time_info)
 
-def telecover(finput, mcode, file_format, files_per_sector = None):
+def telecover(finput, mcode, file_format, 
+              files_per_sector = None, files_per_ring = None):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
@@ -76,28 +77,73 @@ def telecover(finput, mcode, file_format, files_per_sector = None):
             sector_sec.append(sector)
             time_info_sec.append(time_info)
 
+        for ring in ['inner', 'outer']:
+            path = os.path.join(finput, 'rings', ring)
+            print(f'-- Reading {ring} rings..')           
+            # Select reader based on the file format
+            if file_format == 'polly_xt':
+             # In case of Polly define the cal_angle  
+                # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+                #     read_polly.dtfs(path, cfg, cal_angle)
+                sys.exit('-- Error: PollyXT reading routines are not yet ready!')
+                    
+            if file_format == 'licel':
+                meas_info, channel_info, time_info, sig, shots = \
+                    read_licel.dtfs(dir_meas = path, mcode = mcode)
+                
+            ring = folder_to_sector(folder = time_info['folder'].values)
+            time_info['sector'] = ring
+                
+            sig_sec.append(sig)
+            shots_sec.append(shots)
+            sector_sec.append(ring)
+            time_info_sec.append(time_info)
+
         sig = xr.concat(sig_sec, dim = 'time').sortby('time')
         shots = xr.concat(shots_sec, dim = 'time').sortby('time')
         time_info = pd.concat(time_info_sec).sort_index()
         
     else:
-        path = os.path.join(finput, 'sectors')        
-        
-        # Select reader based on the file format
-        if file_format == 'polly_xt':
-         # In case of Polly define the cal_angle  
-            # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-            #     read_polly.dtfs(path, cfg, cal_angle)
-            sys.exit('-- Error: PollyXT reading routines are not yet ready!')
-            
-        if file_format == 'licel':
-            meas_info, channel_info, time_info, sig, shots = \
-                read_licel.dtfs(dir_meas = path, mcode = mcode)
+        for folder in ['sectors', 'rings']:
 
-        sector = time_to_sector(folder = time_info['folder'], 
-                                files_per_sector = files_per_sector)
+            path = os.path.join(finput, folder)     
+            
+            # Select reader based on the file format
+            if file_format == 'polly_xt':
+             # In case of Polly define the cal_angle  
+                # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+                #     read_polly.dtfs(path, cfg, cal_angle)
+                sys.exit('-- Error: PollyXT reading routines are not yet ready!')
+                
+            if file_format == 'licel':
+                meas_info, channel_info, time_info, sig, shots = \
+                    read_licel.dtfs(dir_meas = path, mcode = mcode)
+    
+            if folder == 'sectors':
+                sector = time_to_sector(folder = time_info['folder'], 
+                                        files_per_sector = files_per_sector)
+            
+                time_info['sector'] = sector
+                
+                sig_sec.append(sig)
+                shots_sec.append(shots)
+                sector_sec.append(sector)
+                time_info_sec.append(time_info)
+
+            if folder == 'rings':
+                ring = time_to_ring(folder = time_info['folder'], 
+                                    files_per_ring = files_per_ring)
+            
+                time_info['sector'] = ring
         
-        time_info['sector'] = sector
+                sig_sec.append(sig)
+                shots_sec.append(shots)
+                sector_sec.append(ring)
+                time_info_sec.append(time_info)
+
+        sig = xr.concat(sig_sec, dim = 'time').sortby('time')
+        shots = xr.concat(shots_sec, dim = 'time').sortby('time')
+        time_info = pd.concat(time_info_sec).sort_index()
 
     print('Reading telecover signals complete!')
     print('-----------------------------------------')
@@ -105,7 +151,7 @@ def telecover(finput, mcode, file_format, files_per_sector = None):
 
     return(sig, shots, meas_info, channel_info, time_info)
 
-def calibration(finput, mcode, file_format):
+def polarization_calibration(finput, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
@@ -277,8 +323,8 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
 
 def folder_to_sector(folder):
 
-    fld = ['north','east','south','west']
-    sec = [1,2,3,4]
+    fld = ['north','east','south','west','outer','inner']
+    sec = [1,2,3,4,5,6]
             
     sector = np.nan * np.zeros(folder.shape)
     
@@ -321,3 +367,26 @@ def time_to_sector(folder, files_per_sector):
         sector[i*files_per_sector:(i+1)*files_per_sector] = sec_list[i]
     
     return(sector)
+
+def time_to_ring(folder, files_per_ring):
+    
+    blocks = folder.size / files_per_ring
+    
+    if blocks - np.floor(blocks) > 0.:
+        sys.exit("-- Error: The files_per_ring argument was provided but " +
+                 "the number of telecover files cannot be evenly divided by it! " +
+                 "Please revise the files_per_ring value. If the number of " +
+                 "files per ring was not constant during measurements then " +
+                 "provide the telecover in individual folders per ring.")
+    
+    sec = [5, 6]
+    
+    sec_list = int(np.floor(blocks / 2.)) * sec
+    sec_list.extend(sec[:np.int((blocks - np.floor(blocks / 2.)) * 2.)])
+            
+    ring = np.nan * np.zeros(folder.shape)
+    
+    for i in range(len(sec_list)):
+        ring[i*files_per_ring:(i+1)*files_per_ring] = sec_list[i]
+    
+    return(ring)
