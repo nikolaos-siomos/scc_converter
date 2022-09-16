@@ -238,6 +238,12 @@ def read_header(channel_info, buffer, sep):
      ADC range in mV (20,100,500), ADC bit used for the bit to mV conversion
      laser repetiotion rate, detected wavelength, channel polarization] """
 
+    cols = ['active', 'acquisition_mode', 'laser', 'bins', 
+            'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
+            'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
+            'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
+            'channel_id']
+
     # Now i points to the start of search_sequence, AKA end of header
     header_bytes = buffer[0:sep-1]
     
@@ -245,21 +251,16 @@ def read_header(channel_info, buffer, sep):
     header = str(header_bytes, encoding="utf-8").split("\r\n")
 
     # Header rows
-    channel_ID = []
-    header = np.array(list(np.char.split(header[3:])),dtype = object)
+    header = np.array([line[1:].split()[:len(cols)] for line in header[3:]], 
+                      dtype = object)
 
+    arr_head = pd.DataFrame(header, columns = cols, dtype = object)
+
+    # Produce the channel ID from the licel channel ID and the laser polarization    
+    channel_ID = []
     for i in range(len(header[:,-1])):
-        channel_ID.append(header[i, -1] + '_L' + str(int(header[i, 2])))   
-    
-    cols = ['active', 'acquisition_mode', 'laser', 'bins', 
-            'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
-            'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
-            'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
-            'channel_id']
-    
-    arr_head = pd.DataFrame(header, index = channel_ID, columns = cols, 
-                            dtype = object)
-    
+        channel_ID.append(f'{arr_head.channel_id.iloc[i]}_L{str(int(arr_head.laser.iloc[i]))}')  
+
     channel_info.index = channel_ID
 
     info_columns = ['acquisition_mode', 'laser', 'bins', 'laser_polarization', 
@@ -284,6 +285,13 @@ def read_shots(buffer, sep):
     
     """ Gets the number of shots for each channel and file"""
 
+
+    cols = ['active', 'acquisition_mode', 'laser', 'bins', 
+            'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
+            'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
+            'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
+            'channel_id']
+
     # Now i points to the start of search_sequence, AKA end of header
     header_bytes = buffer[0:sep-1]
     
@@ -291,14 +299,8 @@ def read_shots(buffer, sep):
     header = str(header_bytes, encoding="utf-8").split("\r\n")
 
     # Header rows
-    header = np.array(list(np.char.split(header[3:])),dtype = object)
-
-    cols = ['active', 'acquisition_mode', 'laser', 'bins', 
-            'laser_polarization', 'pmt_high_voltage', 'range_resolution', 
-            'wave_pol', 'unk1', 'unk2', 'unk3', 'unk4', 
-            'analog_to_digital_resolution', 'shots', 'data_acquisition_range',
-            'channel_id']
-    
+    header = np.array([line[1:].split()[:len(cols)] for line in header[3:]], 
+                      dtype = object)
     
     ind_shots = np.where(np.array(cols) == 'shots')[0][0]
     

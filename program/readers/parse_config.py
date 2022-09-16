@@ -115,7 +115,9 @@ def parse_config():
     mandatory_args_abr = ['-f']
     
     if args['results_folder'] == None:
-        args['results_folder'] = os.path.join(args['parent_folder'],'results')
+        res_path = os.path.join(args['parent_folder'],'out','results')
+        args['results_folder'] = res_path
+        os.makedirs(res_path, exist_ok = True)
 
     if args['config_file'] == None:
         args['config_file'] = os.path.join(args['parent_folder'],'config_file.ini')

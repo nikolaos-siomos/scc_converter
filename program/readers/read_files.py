@@ -114,12 +114,14 @@ def telecover(finput, mcode, file_format,
                 # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
                 #     read_polly.dtfs(path, cfg, cal_angle)
                 sys.exit('-- Error: PollyXT reading routines are not yet ready!')
-                
-            if file_format == 'licel':
-                meas_info, channel_info, time_info, sig, shots = \
-                    read_licel.dtfs(dir_meas = path, mcode = mcode)
     
-            if folder == 'sectors':
+            if folder == 'sectors' and os.path.exists(path):
+                
+                            
+                if file_format == 'licel':
+                    meas_info, channel_info, time_info, sig, shots = \
+                        read_licel.dtfs(dir_meas = path, mcode = mcode)
+                        
                 sector = time_to_sector(folder = time_info['folder'], 
                                         files_per_sector = files_per_sector)
             
@@ -130,7 +132,12 @@ def telecover(finput, mcode, file_format,
                 sector_sec.append(sector)
                 time_info_sec.append(time_info)
 
-            if folder == 'rings':
+            if folder == 'rings' and os.path.exists(path):
+                
+                if file_format == 'licel':
+                    meas_info, channel_info, time_info, sig, shots = \
+                        read_licel.dtfs(dir_meas = path, mcode = mcode)
+                    
                 ring = time_to_ring(folder = time_info['folder'], 
                                     files_per_ring = files_per_ring)
             

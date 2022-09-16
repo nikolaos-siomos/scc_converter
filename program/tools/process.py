@@ -29,7 +29,7 @@ def rayleigh(args):
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
         read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
-
+    
     # Read the files in the rayleigh folder
     sig_raw, shots, meas_info, channel_info, time_info = \
         read_files.rayleigh(path, file_format = file_format, mcode = mcode)
