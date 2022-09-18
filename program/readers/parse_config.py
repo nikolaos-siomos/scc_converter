@@ -114,18 +114,18 @@ def parse_config():
 
     mandatory_args_abr = ['-f']
     
+    for i in range(len(mandatory_args)):
+        if not args[mandatory_args[i]]:
+            print(f'-- Error: The mandatory argument {mandatory_args[i]} is not provided! Please provide it with: {mandatory_args_abr[i]} <path>')
+            raise Exception('-- Program stopped') 
+            
     if args['results_folder'] == None:
         res_path = os.path.join(args['parent_folder'],'out','results')
         args['results_folder'] = res_path
         os.makedirs(res_path, exist_ok = True)
 
     if args['config_file'] == None:
-        args['config_file'] = os.path.join(args['parent_folder'],'config_file.ini')
-    
-    for i in range(len(mandatory_args)):
-        if not args[mandatory_args[i]]:
-            print(f'-- Error: The mandatory argument {mandatory_args[i]} is not provided! Please provide it with: {mandatory_args_abr[i]} <path>')
-            sys.exit('-- Program stopped')   
+        args['config_file'] = os.path.join(args['parent_folder'],'config_file.ini')  
     
 
     if len(args['rsonde_column_index']) == 3:
@@ -146,39 +146,39 @@ def parse_config():
     print("")
     
     if not os.path.exists(args['config_file']):
-        sys.exit(f"-- Error: Path to the configuration file does not exists (defaults to <parent_folder>/config_file.ini). Path: {args['config_file']}!")  
+        raise Exception(f"-- Error: Path to the configuration file does not exists (defaults to <parent_folder>/config_file.ini). Path: {args['config_file']}!")  
 
     if not os.path.exists(args['results_folder']):
         os.makedirs(args['results_folder'])
 
     if args['debug'] not in [True, False]:
-        sys.exit(f"-- Error: debug field should be boolean. Please use one of {[True, False]} with: -d <debug>")
+        raise Exception(f"-- Error: debug field should be boolean. Please use one of {[True, False]} with: -d <debug>")
         
     if not os.path.exists(os.path.join(args['results_folder'],'debug')) and args['debug']:
         os.makedirs(os.path.join(args['results_folder'],'debug'))
 
     if args['file_format'] not in ['licel', 'polly_xt']:
-        sys.exit(f"-- Error: file_format field not recognized. Please use one of {['licel', 'polly_xt']} with: -F <file_format>")
+        raise Exception(f"-- Error: file_format field not recognized. Please use one of {['licel', 'polly_xt']} with: -F <file_format>")
     
     if args['mode'] not in ['A', 'R', 'T', 'C', 'D', 'S']:
-        sys.exit(f"-- Error: mode field not recognized. Please revise the settings file and use one of {['A', 'R', 'T', 'C', 'D', 'S']} with: -M <mode>")
+        raise Exception(f"-- Error: mode field not recognized. Please revise the settings file and use one of {['A', 'R', 'T', 'C', 'D', 'S']} with: -M <mode>")
 
     if len(args['rsonde_column_index']) != 4:
-        sys.exit("-- Error: rsonde_column_index field has less or more elements than expected. Please provide 3 or 4 integer eg: --rsonde_column_index 1 2 3")
+        raise Exception("-- Error: rsonde_column_index field has less or more elements than expected. Please provide 3 or 4 integer eg: --rsonde_column_index 1 2 3")
 
     if len(args['rsonde_column_units']) != 4:
-        sys.exit("-- Error: rsonde_column_unit field has less or more elements than expected. Please provide 3 or 4 strings eg: --rsonde_column_units Km Pa C ")
+        raise Exception("-- Error: rsonde_column_unit field has less or more elements than expected. Please provide 3 or 4 strings eg: --rsonde_column_units Km Pa C ")
 
     if args['rsonde_column_units'][0] not in ['m', 'Km'] or \
         args['rsonde_column_units'][1] not in ['Pa', 'hPa'] or \
             args['rsonde_column_units'][2] not in ['C', 'K'] or \
                 args['rsonde_column_units'][3] not in ['fraction', 'percent', None] :
-                    sys.exit("-- Error: rsonde_column_unit field values were not recognized. Please provide on of [m, Km] for height, [Pa, hPa] for pressure, [C, K] for temperature, and [fraction, percent] for relative humidity (optional)")
+                    raise Exception("-- Error: rsonde_column_unit field values were not recognized. Please provide on of [m, Km] for height, [Pa, hPa] for pressure, [C, K] for temperature, and [fraction, percent] for relative humidity (optional)")
 
     if len(args['rsonde_geodata']) != 3:
-        sys.exit("-- Error: rsonde_geodata field has less or more elements than expected. Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
+        raise Exception("-- Error: rsonde_geodata field has less or more elements than expected. Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
             
     if any([not geodata_i for geodata_i in args['rsonde_geodata']]) and args['mode'] == 'S':
-        sys.exit("-- Error: The rsonde_geodata field is mandatory when processing a radiosonde file (mode = S). Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
+        raise Exception("-- Error: The rsonde_geodata field is mandatory when processing a radiosonde file (mode = S). Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
             
     return(args)

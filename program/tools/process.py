@@ -225,7 +225,7 @@ def polarization_calibration(args):
 
     # Check if the rayleigh filename was provided
     if not args['rayleigh_filename']:
-        sys.exit("-- Error: A polarization calibration measurement is being processed but the rayleigh filename was not provided in the arguments! Please prepare the rayleigh file fist and included it with: -l <rayleigh_filename>'")
+        raise Exception("-- Error: A polarization calibration measurement is being processed but the rayleigh filename was not provided in the arguments! Please prepare the rayleigh file fist and included it with: -l <rayleigh_filename>'")
         
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
@@ -398,7 +398,7 @@ def radiosonde(args):
     
     # Reading radiosonde geodata with the lidar station values if a geodata argument is not provided  
     if any([geodata_i == None for geodata_i in geodata]):
-        sys.exit("-- Error: The rsonde_geodata field is mandatory when processing a radiosonde file (mode = A and the radiosonde folder exists). Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
+        raise Exception("-- Error: The rsonde_geodata field is mandatory when processing a radiosonde file (mode = A and the radiosonde folder exists). Please provide 3 floats that correspond to the radiosonde station latitude, longitude, and altitude eg: --rsonde_geodata 40.5 22.9 60.0")
 
     # Creating the radiosonde ID
     rsonde_ID = f"{date}{cfg.meas['lidar_id']}{time[:4]}"
