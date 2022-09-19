@@ -52,8 +52,8 @@ def rayleigh(args):
 
     # Screen profiles that have an iregularly low number of shots
     if not isinstance(sig_raw_d,list):
-        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
-    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
+        sig_raw_d = modify.screen_low_shots(time_info_d, channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(time_info, channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -154,8 +154,8 @@ def telecover(args):
 
     # Screen profiles that have an iregularly low number of shots
     if not isinstance(sig_raw_d,list):
-        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
-    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
+        sig_raw_d = modify.screen_low_shots(time_info_d, channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(time_info, channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -253,8 +253,8 @@ def polarization_calibration(args):
 
     # Screen profiles that have an iregularly low number of shots
     if not isinstance(sig_raw_d,list):
-        sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
-    sig_raw = modify.screen_low_shots(channel_info, signal = sig_raw.copy(), shots = shots)
+        sig_raw_d = modify.screen_low_shots(time_info_d, channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw = modify.screen_low_shots(time_info, channel_info, signal = sig_raw.copy(), shots = shots)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     if not isinstance(sig_raw_d,list):
@@ -338,7 +338,7 @@ def dark(args):
     cfg = modify.fill_defaults(cfg)
 
     # Screen profiles that have an iregularly low number of shots
-    sig_raw_d = modify.screen_low_shots(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
+    sig_raw_d = modify.screen_low_shots(time_info_d, channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)
 
     # Convert analog channel units to mV (applicable mainly to licel)   
     sig_raw_d = modify.unit_conv_bits_to_mV(channel_info_d, signal = sig_raw_d.copy(), shots = shots_d)

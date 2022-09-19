@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import glob
 from datetime import datetime as dt
+from datetime import timedelta
 import xarray as xr
 
 # Read measurement
@@ -76,8 +77,13 @@ def dtfs(dir_meas, mcode):
                 sig_arr[k, :, :] = sig
 
                 start_time_arr[k] = stime
+                
+                if stime == etime: #only possible if the files are different by only milliseconds 
+                    end_time_arr[k] = etime + timedelta(milliseconds = 500)
+                    print(f'-- Warning! File {filename[k]} has the same start and end time reported (recording lasted < 1s). Please check it! ')
+                else:
+                    end_time_arr[k] = etime
 
-                end_time_arr[k] = etime
                      
                 if (mfiles[k]).split(os.sep)[-2] in ['north', 'east', 'south', 'west', 'inner', 'outer', '+45', '-45', 'static']:
                     folder[k] = (mfiles[k]).split(os.sep)[-2]

@@ -109,7 +109,7 @@ def unit_conv_bits_to_mV(channel_info, signal, shots):
     
     return(signal) 
 
-def screen_low_shots(channel_info, signal, shots):
+def screen_low_shots(time_info, channel_info, signal, shots):
 
     """Replaces values in all bins with nans if the numer of shots is
     lower than 10% of the maximum """
@@ -119,6 +119,8 @@ def screen_low_shots(channel_info, signal, shots):
         time = signal.copy().time.values
                 
         channel_id = channel_info.index.values
+        
+        time_ls = []
                 
         for ch in channel_id:
             ch_d = dict(channel = ch)
@@ -127,10 +129,19 @@ def screen_low_shots(channel_info, signal, shots):
             
             mask_t = shots_ch < 0.9 * np.nanmax(shots_ch)
             
-            t_d = dict(time = time[mask_t])
+            time_ls.extend(time[mask_t])
             
-            signal.loc[ch_d].loc[t_d] = np.nan
-
-            shots.loc[ch_d].loc[t_d] = np.nan
+        if len(time_ls) > 0:
+            t_d = dict(time = np.unique(time_ls))
+            
+            print('-- Warning: The following files have less shots than 90% of the naximum number of shots encountered and will be screened out:')
+            for t in np.unique(time_ls):
+                ind_t = np.where(t == time)[0][0]
+                print(f'    Filename: {time_info.filename[ind_t]}')
+                
+            signal.loc[t_d] = np.nan
+    
+            shots.loc[t_d] = np.nan
+        
             
     return(signal) 
