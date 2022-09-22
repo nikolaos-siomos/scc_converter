@@ -16,30 +16,30 @@ from tools import process, automate
 # Ignores all warnings --> they are not printed in terminal
 warnings.filterwarnings('ignore')
 
-# Get the command line argument information
+# def main(args):
 args = parse_config()
 
 # Identify the measurement type (rayleigh , telecover, or polarization_calibration)    
-meas_type = automate.get_meas_type(path = args['parent_folder'])
+meas_type = automate.get_meas_type(args)
      
 # In[1]
 #------------------------------------------------------------
 # A) Read and pre-process the signals
 #------------------------------------------------------------
-allowed_types = ['radiosonde', 'rayleigh', 'telecover', 
-                 'polarization_calibration', 'dark'] 
-allowed_modes = ['S', 'R', 'T', 'C', 'D']
-processors = {'radiosonde' : process.radiosonde,
-              'rayleigh' : process.rayleigh,
+allowed_types = ['rayleigh', 'telecover', 
+                 'polarization_calibration', 'standalone_dark'] 
+
+processors = {'rayleigh' : process.rayleigh,
               'telecover' : process.telecover,
               'polarization_calibration' : process.polarization_calibration,
-              'dark' : process.dark}
-modes = {'radiosonde' : 'S',
-         'rayleigh' : 'R',
+              'standalone_dark' : process.dark}
+
+modes = {'rayleigh' : 'R',
          'telecover' : 'T',
          'polarization_calibration' : 'C',
-         'dark' : 'D'}
+         'standalone_dark' : 'D'}
 
+fnames = dict()
 # Call all the processors sequentially
 for mtype in allowed_types: 
     
@@ -47,14 +47,24 @@ for mtype in allowed_types:
     
         nc_fname = processors[mtype](args)
         
-        if mtype == 'radiosonde' and not args['radiosonde_filename']:
-            args['radiosonde_filename'] = os.path.basename(nc_fname)
-        
-        if mtype == 'rayleigh' and not args['rayleigh_filename'] and 'polarization_calibration' in meas_type:
-            args['rayleigh_filename'] = os.path.basename(nc_fname)
+        if mtype == 'rayleigh':
+            args['rayleigh_filename'] = os.path.basename(nc_fname[0])
+            args['radiosonde_filename'] = os.path.basename(nc_fname[1])
+            fnames['rayleigh'] = nc_fname[0]
+            fnames['radiosonde'] = nc_fname[0]
+        else:
+            fnames[mtype] = nc_fname
     
     elif mtype not in meas_type and args['mode'] == 'A':
         print(f"--Warning: No {mtype} files were processed!")
+        print("")
         
     elif mtype not in meas_type and args['mode'] == modes[mtype]:
-        sys.exit(f"--Error: No {mtype} folder was detected despite the provided mode ({modes[mtype]})!")
+        raise Exception(f"--Error: No {mtype} folder was detected despite the provided mode ({modes[mtype]})!")
+
+    # return(fnames)
+
+# if __name__ == '__main__':
+#     # Get the command line argument information
+#     args = parse_config()
+#     main(args)

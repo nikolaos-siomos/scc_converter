@@ -15,7 +15,6 @@ Returns:
 
 import argparse
 import os
-import sys
 
 def parse_config():
         
@@ -27,12 +26,44 @@ def parse_config():
     
 
     parser.add_argument('-f', '--parent_folder', metavar='parent_folder', 
-                        type=str, nargs='?', 
+                        type=str, nargs='?',  default = None,
                         help='The path to the parent folder that contains the normal folder and all other optional input folders (dark, atmosphere, overlap). If no results folder is provided, it will be exported here by default')
 
-    parser.add_argument('-r', '--results_folder', metavar='results_folder', 
+    parser.add_argument('--dark_folder', metavar='dark_folder', 
                         type=str, nargs='?', default = None,
-                        help='The path to the results folder. This optional argument can be used if the results folder must be placed out of the parent_folder (default)')
+                        help='The path to the dark folder. Defaults to a drk folder inside the parent folder')
+
+    parser.add_argument('--rayleigh_folder', metavar='rayleigh_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the rayleigh fit measurement folder. Defaults to a nrm folder inside the parent folder')
+    
+    parser.add_argument('--telecover_sectors_folder', metavar='telecover_sectors_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the telecover folder that contains the sector files. Defaults to a tlc/sectors folder inside the parent folder')
+
+    parser.add_argument('--telecover_rings_folder', metavar='telecover_rings_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the telecover folder that contains the ring (inner/outer) files. Defaults to a tlc/rings folder inside the parent folder')
+        
+    parser.add_argument('--pol_cal_p45_folder', metavar='pol_cal_p45_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the polarization calibration +45 folder. Defaults to a pcl/+45 folder inside the parent folder')
+
+    parser.add_argument('--pol_cal_m45_folder', metavar='pol_cal_m45_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the polarization calibration -45 folder. Defaults to a pcl/-45 folder inside the parent folder')
+
+    parser.add_argument('--pol_cal_stc_folder', metavar='pol_cal_stc_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the polarization calibration folder for a calibration with a single calibrator position. Defaults to a pcl/stc folder inside the parent folder')
+
+    parser.add_argument('--radiosonde_folder', metavar='radiosonde_folder', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the radiosonde folder. The radiosonde file that is closest to the measurement within 12h will be selected if more than 1 files are provided inside')    
+    
+    parser.add_argument('-o', '--output_folder', metavar='scc_converter', 
+                        type=str, nargs='?', default = None,
+                        help='The path to the results folder. This optional argument can be used if the results folder must be placed out of the parent_folder. Defaults to parent_folder/scc_converter ')
 
     parser.add_argument('-d', '--debug', metavar = 'debug',
                         type = bool, default = False, 
@@ -43,11 +74,11 @@ def parse_config():
                         type=str, nargs='?', default = None,
                         help='The path to the configuration file that contains the necessary metadata. This optional argument can be used if the settings folder must be placed out of the parent_folder (default)')            
 
-    parser.add_argument('-s', '--radiosonde_filename', metavar='radiosonde_filename', 
+    parser.add_argument('--radiosonde_filename', metavar='radiosonde_filename', 
                         type=str, nargs='?', default = None, 
                         help='Corresponding radiosonde filename. Use mode A in order to automatically include it by processing both rayleigh and radiosonde folders. Providing it as an argument will override the automatic detection with mode A')            
 
-    parser.add_argument('-l', '--rayleigh_filename', metavar='rayleigh_filename', 
+    parser.add_argument('--rayleigh_filename', metavar='rayleigh_filename', 
                         type=str, nargs='?', default = None,
                         help='Corresponding rayleigh filename. Mandatory to provid when processing a depolarization calibration measurement. Use mode A in order to automatically include it by processing both rayleigh and calibration folders. Providing it as an argument will override the automatic detection with mode A')          
 
@@ -59,11 +90,11 @@ def parse_config():
                         type=str, nargs='?', default = 273.15,
                         help='The atmospheric temperature in the lidar station in K. Defaults to 293.15 K')            
 
-    parser.add_argument('-n_sector', '--files_per_sector', metavar='files_per_sector', 
+    parser.add_argument('--files_per_sector', metavar='files_per_sector', 
                         type=int, nargs='?', default = None,
                         help='The number of telecover files per sector. If called, an automated assignment of the telecover files in different sectors will be attempted serially')            
     
-    parser.add_argument('-n_ring', '--files_per_ring', metavar='files_per_ring', 
+    parser.add_argument('--files_per_ring', metavar='files_per_ring', 
                         type=int, nargs='?', default = None,
                         help='The number of telecover files per ring. If called, an automated assignment of the telecover files in different rings will be attempted serially')            
     
@@ -71,13 +102,13 @@ def parse_config():
                         type=str, nargs='?', default = '',
                         help="Licel files usually start with a 1 or 2 character long pattern. Set the measurement_code to match this patern in order to read only files starting with it. Defaults to an empty string.")   
 
-    parser.add_argument('-F', '--file_format', metavar='file_format', 
+    parser.add_argument('--file_format', metavar='file_format', 
                         type=str, nargs='?', default = 'licel',
                         help="Raw file format.  Currently only licel is supported and polly_xt is being prepared. Defaults to 'licel'.")   
          
     parser.add_argument('-M', '--mode', metavar='mode', 
                         type=str, nargs='?', default = 'A',
-                        help="The processing mode. Select between A: Automated, R: Rayleigh, T: Telecover, C: Polarization Calibration, D: Standalone Dark, S: Radiosond. Defaults to A. By using A the algorithm will process all available measurements. Use an option other than A to process only measurements of the specific type!")   
+                        help="The processing mode. Select between A: Automated, R: Rayleigh, T: Telecover, C: Polarization Calibration, D: Standalone Dark. Defaults to A. By using A the algorithm will process all available measurements. Use an option other than A to process only measurements of the specific type!")   
 
     parser.add_argument('--rsonde_skip_header', metavar='rsonde_skip_header', 
                         type=int, nargs='?', default = 1,
@@ -110,14 +141,15 @@ def parse_config():
 
     args = vars(parser.parse_args())
     
-    mandatory_args = ['parent_folder']
-
-    mandatory_args_abr = ['-f']
-    
-    for i in range(len(mandatory_args)):
-        if not args[mandatory_args[i]]:
-            print(f'-- Error: The mandatory argument {mandatory_args[i]} is not provided! Please provide it with: {mandatory_args_abr[i]} <path>')
-            raise Exception('-- Program stopped') 
+    if args['parent_folder'] == None and \
+        args['dark_folder'] == None and \
+            args['telecover_sec_folder'] == None and \
+                args['telecover_rin_folder'] == None and \
+                    (args['pol_cal_p45_folder'] == None or \
+                     args['pol_cal_m45_folder'] == None) and \
+                        args['pol_cal_stc_folder'] == None:
+        raise Exception("-- Error: Neither a parent folder nor individual folders for the dark, rayleigh_fit, telecover, and polarization_calibration tests where provided. Please either provide the parent_folder and use the default folder structure within or define each test folder explicitly! ")          
+                
             
     if args['results_folder'] == None:
         res_path = os.path.join(args['parent_folder'],'out','results')
@@ -126,7 +158,6 @@ def parse_config():
 
     if args['config_file'] == None:
         args['config_file'] = os.path.join(args['parent_folder'],'config_file.ini')  
-    
 
     if len(args['rsonde_column_index']) == 3:
         rsonde_column_index = args['rsonde_column_index']
@@ -138,6 +169,18 @@ def parse_config():
         rsonde_column_units.extend([None])
         args['rsonde_column_units'] = rsonde_column_units
         
+    fld = ['dark_folder', 'rayleigh_folder', 'telecover_sectors_folder', 
+           'telecover_rings_folder', 'pol_cal_p45_folder', 
+           'pol_cal_m45_folder', 'pol_cal_stc_folder', 'radiosonde_folder']
+    
+    default_loc = ['drk', 'nrm', os.path.join('tlc','sec'), 
+                   os.path.join('tlc','rin'), os.path.join('pcl','+45'),
+                   os.path.join('pcl','-45'), os.path.join('pcl','stc'), 'rs']
+    
+    for i in range(len(fld)):
+        if args[fld[i]] == None:
+            args[fld[i]] = os.path.join(args['parent_folder'], default_loc[i])
+
     print("-- The following arguments have been imported!")
     print("-------------------------------------------------------------------")
     for key in args.keys():
@@ -160,8 +203,8 @@ def parse_config():
     if args['file_format'] not in ['licel', 'polly_xt']:
         raise Exception(f"-- Error: file_format field not recognized. Please use one of {['licel', 'polly_xt']} with: -F <file_format>")
     
-    if args['mode'] not in ['A', 'R', 'T', 'C', 'D', 'S']:
-        raise Exception(f"-- Error: mode field not recognized. Please revise the settings file and use one of {['A', 'R', 'T', 'C', 'D', 'S']} with: -M <mode>")
+    if args['mode'] not in ['A', 'R', 'T', 'C', 'D']:
+        raise Exception(f"-- Error: mode field not recognized. Please revise the settings file and use one of {['A', 'R', 'T', 'C', 'D']} with: -M <mode>")
 
     if len(args['rsonde_column_index']) != 4:
         raise Exception("-- Error: rsonde_column_index field has less or more elements than expected. Please provide 3 or 4 integer eg: --rsonde_column_index 1 2 3")

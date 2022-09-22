@@ -6,171 +6,103 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 
-def get_meas_type(path):
+def get_meas_type(args):
 
     """Identifies if the measurement being processed is a Rayleigh, 
     a Telecover, a Depolarization Calibration, or a standalone Dark."""
     
     meas_type = []
-
-    list_dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path,d))]
-
-    if 'rs' in list_dirs:
-        meas_type.append('radiosonde')
+    
+    dirs = {'drk' : args['dark_folder'],
+            'ray' : args['rayleigh_folder'],
+            'tlc_sec' : args['telecover_sectors_folder'],
+            'tlc_rin' : args['telecover_rings_folder'],
+            'pcl_stc' : args['pol_cal_stc_folder'],
+            'pcl_p45' : args['pol_cal_p45_folder'],
+            'pcl_m45' : args['pol_cal_m45_folder']}                                        
         
-    if 'ray' in list_dirs: 
+    if os.path.exists(dirs['ray']): 
         meas_type.append('rayleigh')
 
-    if 'tlc' in list_dirs:
+    if os.path.exists(dirs['tlc_sec']) or os.path.exists(dirs['tlc_rin']): 
         meas_type.append('telecover')
 
-    if 'pcl' in list_dirs:
+    if (os.path.exists(dirs['pcl_p45']) and os.path.exists(dirs['pcl_m45'])) \
+        or os.path.exists(dirs['pcl_stc']):
         meas_type.append('polarization_calibration')
 
-    if 'drk' in list_dirs:
-        meas_type.append('dark')
+    if os.path.exists(dirs['drk']) and \
+        all([not(os.path.exists(dirs[key])) 
+             for key in dirs.keys() if key != 'drk']):
+        meas_type.append('standalone_dark')
     
     if len(meas_type) == 0:
-        sys.exit('-- Error: None of the expected folders were detected in the parent folder. Please use at least one of the following: dark, rayleigh, telecover, calibration or calibration_plus and calibration_minus')
+        raise Exception('-- Error: None of the input folders exists!')
                 
     return(meas_type)
 
-def check_rayleigh(path):
 
-    """Ensures that the rayleigh folder is properly set, otherwise it raises 
-    an error """
-        
-    if os.path.exists(path):
-        
-        allowed_folders = ['dark', 'normal']
-    
-        list_dirs = [d for d in os.listdir(path) 
-                     if os.path.isdir(os.path.join(path,d))]
-    
-        if 'normal' not in list_dirs:
-            sys.exit('-- Error: The normal folder was not detected in the '+
-                     'rayleigh folder. Please provide it!')
-        
-        if 'dark' not in list_dirs:
-            print('-- Warning: No dark folder detected in the rayleigh folder. '+
-                  'The generated rayleigh files will not be compatible with ATLAS!')
-    
-        if any(dir_i not in allowed_folders for dir_i in list_dirs):
-            sys.exit(f'-- Error: The ./rayleigh folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
-            
-    return()
-
-def check_telecover(path, files_per_sector, files_per_ring):
+def check_telecover_sec(path, files_per_sector):
 
     """Ensures that the telecover folder is properly set, otherwise it raises 
     an error """
         
     if os.path.exists(path):
-
-        allowed_folders = ['dark', 'sectors', 'rings']
     
-        allowed_sfolders_sec = ['north', 'east', 'south', 'west']
+        allowed_folders = ['north', 'east', 'south', 'west']
 
-        allowed_sfolders_rng = ['inner', 'outer']
+        list_dirs = [dir_i for dir_i in os.listdir(path)]
+
+        unk_folder = [dir_i not in allowed_folders for dir_i in list_dirs]
+
+        mis_folder = [dir_i not in list_dirs for dir_i in allowed_folders]
         
-        list_dirs = [d for d in os.listdir(path) 
-                     if os.path.isdir(os.path.join(path,d))]
-    
-        if 'sectors' not in list_dirs and 'rings' not in list_dirs:
-            sys.exit('-- Error: Neither a sectors nor a rings folder was '+\
-                     'detected in the telecover folder. '+\
-                     'Please provide at least one of them!')
-    
-        if 'dark' not in list_dirs:
-            print('-- Warning: No dark folder detected in the rayleigh folder. '+
-                  'The generated telecover files will not be compatible with ATLAS!')
-    
-        if any(dir_i not in allowed_folders for dir_i in list_dirs):
-            sys.exit('-- Error: The ./telecover folder contains at least ' +
-                     'one directory that is different from the expected ones ' +
-                     f'({allowed_folders}). Please make sure only the allowed '+
-                     'directories exist there')
-              
-        if files_per_sector:
-            
-            if 'sectors' not in list_dirs:
-                sys.exit('-- Error: The ./telecover/sectors folder was not ' +
-                         'detected in the telecover folder. This folder ' + 
-                         'must be provided always  when the ' + 
-                         'files_per_sector argument is used!')  
+        if any(unk_folder):
+                
+            raise Exception('-- Error: Unknown subfolder(s) detected  ' +
+                f'in the telecover sectors folder: {list_dirs[unk_folder]} ' +
+                f'in {path} Please remove in order to proceed!')
 
-        if files_per_ring:
-            
-            if 'rings' not in list_dirs:
-                sys.exit('-- Error: The ./telecover/rings folder was not ' +
-                         'detected in the telecover folder. This folder ' + 
-                         'must be provided always  when the ' + 
-                         'files_per_ring argument is used!')                
-        else:
-            
-            path_sec = os.path.join(path,'sectors')
-           
-            if os.path.exists(path_sec):
-            
-                list_sdirs = [d for d in os.listdir(path_sec) 
-                             if os.path.isdir(os.path.join(path_sec,d))]
-        
-                if any(dir_i not in allowed_sfolders_sec for dir_i in list_sdirs):
-                        
-                    sys.exit('-- Error: At least one sector folder is missing ' +
-                             'in the ./telecover/sectors folder. Please ' +
-                             'either provide all: (north east south west) ' +
-                             'folders or provide the files_per_sector '+
-                             'argument as: -n_sector <number_of_files_per sector>')
+        if any(mis_folder):
+                    
+            raise Exception('-- Error: Subfolder(s) missing ' +
+                'in the telecover sectors folder: allowed_folders{mis_folder} ' +
+                f'Please either provide all: {allowed_folders} ' +
+                'folders or use the files_per_sector '+
+                'argument as: --files_per_sector <number_of_files>')
     
-            path_rng = os.path.join(path,'rings')
-    
-            if os.path.exists(path_rng):
-
-                list_sdirs = [d for d in os.listdir(path_rng) 
-                             if os.path.isdir(os.path.join(path_sec,d))]
-
-                if any(dir_i not in allowed_sfolders_rng for dir_i in list_sdirs):
-                        
-                    sys.exit('-- Error: At least one sector folder is missing ' +
-                             'in the ./telecover/rings folder. Please ' +
-                             f'either provide all: {allowed_sfolders_rng} ' +
-                             'folders or provide the files_per_ring '+
-                             'argument as: -n_ring <number_of_files_per_ring>')
-  
     return()
 
-def check_polarization_calibration(path):
+def check_telecover_rin(path, files_per_ring):
 
-    """Ensures that the calibration folder is properly set, otherwise it raises 
+    """Ensures that the telecover folder is properly set, otherwise it raises 
     an error """
-    
+        
     if os.path.exists(path):
     
-        allowed_folders = ['dark', 'static', '+45','-45']
-        
-        list_dirs = [d for d in os.listdir(path) 
-                     if os.path.isdir(os.path.join(path,d))]
-    
-        if ('-45' not in list_dirs and '+45' not in list_dirs) \
-            and 'static' not in list_dirs:
-            sys.exit('-- Error: None of the expected folders were detected in the calibration folder. Please provide the -45 and +45 folders for a D90 calibration or the static folder for a calibration without rotation')
-        
-        if ('-45' not in list_dirs or '+45' not in list_dirs) \
-            and 'static' not in list_dirs:
-            sys.exit('-- Error: Only one of the -45 and +45 folders was provided for the D90 calibration. Please include both folders')
-    
-        if ('-45' in list_dirs or '+45' in list_dirs) \
-            and 'static' in list_dirs:
-            sys.exit('-- Error: Folders for more that one calibration technique were provided. Please keep either the -45 and +45 folders for a D90 calibration or the static folder for a calibration without rotation')
-     
-        if not 'dark' in list_dirs:
-            print('-- Warning: No dark folder detected for the polarization calibration. The generated files will not be compatible with the ATLAS software!')
-    
-        if any(dir_i not in allowed_folders for dir_i in list_dirs):
-            sys.exit(f'-- Error: The ./calibration folder contains at least one directory that is different from the expected ones ({allowed_folders}). Please make sure only the allowed directories exist there')
+        allowed_folders = ['inner', 'outer']
 
+        list_dirs = [dir_i for dir_i in os.listdir(path)]
+
+        unk_folder = [dir_i not in allowed_folders for dir_i in list_dirs]
+
+        mis_folder = [dir_i not in list_dirs for dir_i in allowed_folders]
+        
+        if any(unk_folder):
+                
+            raise Exception('-- Error: Unknown subfolder(s) detected  ' +
+                f'in the telecover rings folder: {list_dirs[unk_folder]} ' +
+                f'in {path} Please remove in order to proceed!')
+
+        if any(mis_folder):
+                    
+            raise Exception('-- Error: Subfolder(s) missing ' +
+                'in the telecover rings folder: allowed_folders{mis_folder} ' +
+                f'Please either provide all: {allowed_folders} ' +
+                'folders or use the files_per_ring '+
+                'argument as: --files_per_ring <number_of_files>')
     return()
+
 
 def detect_overflows(sig, shots, channel_info, time_info, meas_type, method = 0):
 
@@ -364,9 +296,7 @@ def overflow_method_0(mask, filename):
                 
                 print(f"    file: {filename_ovf} | ch: {ch} | bins: {bins_ovf}")
         
-        print("-- In order to continue with an automated overflow removal use the trim_overflow argument with value 1 or 2 (default is 0) ")
-
-        sys.exit("-- Aborting!")
+        raise Exception("-- Error: In order to continue with an automated overflow removal use the trim_overflow argument with value 1 or 2 (default is 0) ")
         
     return()
 

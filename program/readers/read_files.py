@@ -6,8 +6,9 @@ import numpy as np
 from readers import read_licel, read_polly
 import xarray as xr
 import pandas as pd
+from datetime import datetime
 
-def rayleigh(finput, mcode, file_format):
+def rayleigh(finput_ray, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
@@ -18,8 +19,6 @@ def rayleigh(finput, mcode, file_format):
     print('Start reading Rayleigh signals...')
     print('-----------------------------------------')
     
-    path = os.path.join(finput, 'normal')        
-
     # Select reader based on the file format
     if file_format == 'polly_xt':
         raise Exception('-- Error: PollyXT reading routines are not yet ready!')
@@ -29,7 +28,7 @@ def rayleigh(finput, mcode, file_format):
             
     elif file_format == 'licel':
         meas_info, channel_info, time_info, sig, shots = \
-            read_licel.dtfs(dir_meas = path, mcode = mcode)
+            read_licel.dtfs(dir_meas = finput_ray, mcode = mcode)
         
     print('Reading Rayleigh signals complete!')
     print('-----------------------------------------')
@@ -37,7 +36,7 @@ def rayleigh(finput, mcode, file_format):
 
     return(sig, shots, meas_info, channel_info, time_info)
 
-def telecover(finput, mcode, file_format, 
+def telecover(finput_sec, finput_rin, mcode, file_format, 
               files_per_sector = None, files_per_ring = None):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
@@ -56,7 +55,7 @@ def telecover(finput, mcode, file_format,
     
     if not files_per_sector:
         for sector in ['north', 'east', 'south', 'west']:
-            path = os.path.join(finput, 'sectors', sector)
+            path = os.path.join(finput_sec, sector)
             print(f'-- Reading {sector} sector..')           
             # Select reader based on the file format
             if file_format == 'polly_xt':
@@ -78,7 +77,7 @@ def telecover(finput, mcode, file_format,
             time_info_sec.append(time_info)
 
         for ring in ['inner', 'outer']:
-            path = os.path.join(finput, 'rings', ring)
+            path = os.path.join(finput_rin, ring)
             print(f'-- Reading {ring} rings..')           
             # Select reader based on the file format
             if file_format == 'polly_xt':
@@ -104,49 +103,49 @@ def telecover(finput, mcode, file_format,
         time_info = pd.concat(time_info_sec).sort_index()
         
     else:
-        for folder in ['sectors', 'rings']:
-
-            path = os.path.join(finput, folder)     
             
-            # Select reader based on the file format
-            if file_format == 'polly_xt':
-             # In case of Polly define the cal_angle  
-                # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-                #     read_polly.dtfs(path, cfg, cal_angle)
-                raise Exception('-- Error: PollyXT reading routines are not yet ready!')
-    
-            if folder == 'sectors' and os.path.exists(path):
-                
-                            
-                if file_format == 'licel':
-                    meas_info, channel_info, time_info, sig, shots = \
-                        read_licel.dtfs(dir_meas = path, mcode = mcode)
+        # Select reader based on the file format
+        if file_format == 'polly_xt':
+         # In case of Polly define the cal_angle  
+            # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+            #     read_polly.dtfs(path, cfg, cal_angle)
+            raise Exception('-- Error: PollyXT reading routines are not yet ready!')
+
+        if os.path.exists(finput_sec):
+            
+            print('-- Reading sectors..')           
                         
-                sector = time_to_sector(folder = time_info['folder'], 
-                                        files_per_sector = files_per_sector)
-            
-                time_info['sector'] = sector
-                
-                sig_sec.append(sig)
-                shots_sec.append(shots)
-                sector_sec.append(sector)
-                time_info_sec.append(time_info)
-
-            if folder == 'rings' and os.path.exists(path):
-                
-                if file_format == 'licel':
-                    meas_info, channel_info, time_info, sig, shots = \
-                        read_licel.dtfs(dir_meas = path, mcode = mcode)
+            if file_format == 'licel':
+                meas_info, channel_info, time_info, sig, shots = \
+                    read_licel.dtfs(dir_meas = finput_sec, mcode = mcode)
                     
-                ring = time_to_ring(folder = time_info['folder'], 
-                                    files_per_ring = files_per_ring)
-            
-                time_info['sector'] = ring
+            sector = time_to_sector(folder = time_info['folder'], 
+                                    files_per_sector = files_per_sector)
         
-                sig_sec.append(sig)
-                shots_sec.append(shots)
-                sector_sec.append(ring)
-                time_info_sec.append(time_info)
+            time_info['sector'] = sector
+            
+            sig_sec.append(sig)
+            shots_sec.append(shots)
+            sector_sec.append(sector)
+            time_info_sec.append(time_info)
+
+        if os.path.exists(finput_rin):
+            
+            print('-- Reading rings..')    
+            
+            if file_format == 'licel':
+                meas_info, channel_info, time_info, sig, shots = \
+                    read_licel.dtfs(dir_meas = finput_rin, mcode = mcode)
+                
+            ring = time_to_ring(folder = time_info['folder'], 
+                                files_per_ring = files_per_ring)
+        
+            time_info['sector'] = ring
+    
+            sig_sec.append(sig)
+            shots_sec.append(shots)
+            sector_sec.append(ring)
+            time_info_sec.append(time_info)
 
         sig = xr.concat(sig_sec, dim = 'time').sortby('time')
         shots = xr.concat(shots_sec, dim = 'time').sortby('time')
@@ -158,7 +157,7 @@ def telecover(finput, mcode, file_format,
 
     return(sig, shots, meas_info, channel_info, time_info)
 
-def polarization_calibration(finput, mcode, file_format):
+def polarization_calibration(finput_p45, finput_m45, finput_stc, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
@@ -169,35 +168,62 @@ def polarization_calibration(finput, mcode, file_format):
     print('Start reading Polarization Calibration signals...')
     print('-----------------------------------------')
     
-    list_dirs = [d for d in os.listdir(finput)
-                 if os.path.isdir(os.path.join(finput, d)) and 
-                 d in ['-45','+45']]
             
     sig_pos = []
     shots_pos = []
     position_pos = []
     time_info_pos = []
 
-    for folder in list_dirs:
-        
-        path = os.path.join(finput, folder)  
-        
-        print(f'-- Reading {folder} files..')      
-        
-        # Select reader based on the file format
-        if file_format == 'polly_xt':
-         # In case of Polly define the cal_angle  
-            # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
-            #     read_polly.dtfs(path, cfg, cal_angle)
-            raise Exception('-- Error: PollyXT reading routines are not yet ready!')
                 
+    # Select reader based on the file format
+    if file_format == 'polly_xt':
+     # In case of Polly define the cal_angle  
+        # sig_raw, sig_dev, info_val, info_dev, ground_alt, SZA, azimuth =\
+        #     read_polly.dtfs(path, cfg, cal_angle)
+        raise Exception('-- Error: PollyXT reading routines are not yet ready!')
+
+    if os.path.exists(finput_stc):
+        
+        print('-- Reading static calibration files..')  
+        
         if file_format == 'licel':
             meas_info, channel_info, time_info, sig, shots = \
-                read_licel.dtfs(dir_meas = path, mcode = mcode)
+                read_licel.dtfs(dir_meas = finput_stc, mcode = mcode)
 
-        position = folder_to_position(folder = time_info['folder'].values)
+        position = np.array(time_info.index.size * [0])
+        time_info['position'] = position
+        sig_pos.append(sig)
+        shots_pos.append(shots)
+        position_pos.append(position)
+        time_info_pos.append(time_info)
+
+    if os.path.exists(finput_m45):
+        
+        print('-- Reading -45 files..')  
+        
+        if file_format == 'licel':
+            meas_info, channel_info, time_info, sig, shots = \
+                read_licel.dtfs(dir_meas = finput_m45, mcode = mcode)
+
+        position = np.array(time_info.index.size * [1])
         time_info['position'] = position
 
+        sig_pos.append(sig)
+        shots_pos.append(shots)
+        position_pos.append(position)
+        time_info_pos.append(time_info)
+
+    if os.path.exists(finput_p45):
+        
+        print('-- Reading +45 files..')  
+        
+        if file_format == 'licel':
+            meas_info, channel_info, time_info, sig, shots = \
+                read_licel.dtfs(dir_meas = finput_p45, mcode = mcode)
+
+        position = np.array(time_info.index.size * [2])
+        time_info['position'] = position
+        
         sig_pos.append(sig)
         shots_pos.append(shots)
         position_pos.append(position)
@@ -214,7 +240,7 @@ def polarization_calibration(finput, mcode, file_format):
     return(sig, shots, meas_info, channel_info, time_info)
 
 
-def dark(finput, mcode, file_format):
+def dark(finput_drk, mcode, file_format):
     
     """Extracts the raw signal, shots, and rest metadata information out of the 
     raw input files. The default format is currently licel. The signal units
@@ -225,8 +251,6 @@ def dark(finput, mcode, file_format):
     print('Start reading dark signals...')
     print('-----------------------------------------')
     
-    path = finput       
-
     # Select reader based on the file format
     if file_format == 'polly_xt':
      # In case of Polly define the cal_angle  
@@ -236,7 +260,7 @@ def dark(finput, mcode, file_format):
 
     elif file_format == 'licel':
         meas_info, channel_info, time_info, sig, shots = \
-            read_licel.dtfs(dir_meas = path, mcode = mcode)
+            read_licel.dtfs(dir_meas = finput_drk, mcode = mcode)
 
     print('Reading dark signals complete!')
     print('-----------------------------------------')
@@ -245,7 +269,8 @@ def dark(finput, mcode, file_format):
     return(sig, shots, meas_info, channel_info, time_info)
 
 
-def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
+def radiosonde(finput_rs, delimiter, skip_header, skip_footer, 
+               usecols, units, mtime):
 
     """Extracts the meteorological information out of the 
     raw radiosonde file."""
@@ -255,7 +280,7 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
     print('Start reading radiosonde file...')
     print('-----------------------------------------')
     
-    path = glob.glob(os.path.join(finput,'*'))
+    paths = glob.glob(os.path.join(finput_rs,'*_*.txt'))
     
     lib_delimiter =  {"S": "",
                       "C": ",",
@@ -274,30 +299,45 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
     def fraction_to_percent(x):
         return(100. * x)
     
-    if len(path) > 1:
-        raise Exception("-- Error: More than one txt files provided in the radiosonde folder! Please provide a single file with the radiosonde data with the following filename: yyyymmddhh<any_text>.txt ")
-    elif len(path) == 0 :
-        raise Exception("-- Error: No txt file provided in the radiosonde folder! Please provide a single file with the radiosonde data with the following filename: yyyymmddhh<any_text>.txt ")
+    if len(paths) == 0 :
+        raise Exception("-- Error: No txt file provided in the radiosonde folder! Please provide a single file with the radiosonde data with a filename that starts with 'yyyymmdd_hhmm' and ends with '.txt' ")
 
-    if len(os.path.basename(path[0])) < 13:
-        raise Exception("The provided radiosonde filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+    bpaths = [os.path.basename(path) for path in paths]
+
+    bad_length = [len(path) < 14 for path in bpaths]
+    
+    if any(bad_length) :
+        raise Exception(f"-- Error: Radiosonde filename with wrong length detected! Please revise the following files: {bpaths[bad_length]}. They should start with 'yyyymmdd_hhmm' and end with '.txt' ")
     else:
-        try:
-            date, time = os.path.basename(path[0])[:13].split('_')
-        except:
-            raise Exception("The provided radiosonde filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+        bad_format = [path[8] != '_' for path in bpaths]
+        if any(bad_format):
+            raise Exception(f"-- Error: Radiosonde filename with wrong format detected! Please revise the following files: {bpaths[bad_format]}. They should start with 'yyyymmdd_hhmm' and end with '.txt' ")
+        else:
+            dates = [path[:13].split('_')[0] for path in bpaths]
+            times = [path[:13].split('_')[1] for path in bpaths]
 
-    if int(date[:4]) not in np.arange(1960,9999,1) or \
-        int(date[4:6]) not in np.arange(1,13,1) \
-            or int(date[6:8]) not in np.arange(1,31,1):
-        raise Exception("-- Error: The date provided in the radiosond filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+    bad_dates = [int(date[:4]) not in np.arange(1960,9999,1) or \
+                 int(date[4:6]) not in np.arange(1,13,1) or \
+                 int(date[6:8]) not in np.arange(1,31,1) for date in dates]
 
-    if int(time[:2]) not in np.arange(0,24,1) or \
-        int(time[2:4]) not in np.arange(0,60,1) \
-            or int(date[4:6]) not in np.arange(0,60,1):
-        raise Exception("-- Error: The time provided in the radiosond filename is not correct. Please revise the filename format. It should start with 'yyyymmdd_hhmmss' and end with '.txt' ")
+    bad_times = [int(time[:2]) not in np.arange(0,24,1) or \
+                 int(time[2:4]) not in np.arange(0,60,1) for time in times]
         
+    if any(bad_dates):
+        raise Exception("-- Error: The date provided in at least one radiosonde filename is not correct. Please revise the following files: {bpaths[bad_dates]}. It should start with 'yyyymmdd_hhmm' and end with '.txt' ")
 
+    if any(bad_times):
+        raise Exception("-- Error: The time provided in at least radiosond filename is not correct. Please revise the following files: {bpaths[bad_times]}. It should start with 'yyyymmdd_hhmm' and end with '.txt' ")
+        
+    date_dt = np.array([datetime.strptime(date,'%Y%m%d') for date in dates])
+    
+    delta_t = np.array([(dt - mtime).total_seconds() /3600. for dt in date_dt])
+
+    ind_rs = np.argmin(np.abs(delta_t))
+    
+    if not any(np.abs(delta_t) < 18):
+        raise Exception(f"-- Error: The nearest radiosonde in time was launched with a time difference of {np.round(delta_t[ind_rs],decimals=1)} hours with respect to the middle time of the measurement! Please provide a radiosond file with less than 18 hours temporal difference")
+    
     if usecols[3] == None:
         parameters = ['P', 'T']
         usecols = usecols[:3]
@@ -306,7 +346,7 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
         parameters = ['P', 'T', 'RH']
         
         
-    data = np.genfromtxt(path[0],skip_header = skip_header, 
+    data = np.genfromtxt(paths[ind_rs],skip_header = skip_header, 
                          skip_footer = skip_footer,
                          delimiter = lib_delimiter[delimiter], 
                          autostrip = True,
@@ -332,7 +372,7 @@ def radiosonde(finput, delimiter, skip_header, skip_footer, usecols, units):
                         coords = [alt, parameters], 
                         dims = ['height', 'parameters'] )
     
-    return(date, time, atmo)
+    return(dates[ind_rs], times[ind_rs], atmo)
 
 def folder_to_sector(folder):
 

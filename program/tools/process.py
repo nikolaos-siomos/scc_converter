@@ -8,31 +8,32 @@ Created on Thu Aug  4 23:30:39 2022
 
 from readers.read_config import config
 import os, sys
+import numpy as np
 from readers import read_files
 from tools import modify, make
-from tools.automate import check_rayleigh, check_telecover
-from tools.automate import check_polarization_calibration, detect_overflows
+from tools.automate import check_telecover_sec, check_telecover_rin
+from tools.automate import detect_overflows
 
 def rayleigh(args):
    
-    path = os.path.join(args['parent_folder'],'ray')
-    path_d = os.path.join(args['parent_folder'],'ray','dark')
+    path_ray = args['rayleigh_folder']
+    path_drk = args['dark_folder']
+    path_cfg = args['config_file']
+    
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     
-    # Checking the rayleigh folder    
-    check_rayleigh(path)
 
     # Reading of the configuration file    
-    cfg = config(path = args['config_file']) 
+    cfg = config(path = path_cfg) 
 
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
-        read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
+        read_files.dark(finput_drk = path_drk, file_format = file_format, mcode = mcode)
     
     # Read the files in the rayleigh folder
     sig_raw, shots, meas_info, channel_info, time_info = \
-        read_files.rayleigh(path, file_format = file_format, mcode = mcode)
+        read_files.rayleigh(finput_ray = path_ray, file_format = file_format, mcode = mcode)
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
@@ -87,6 +88,12 @@ def rayleigh(args):
     # Creating the paths and folders
     nc_path = make.path(results_folder = args['results_folder'], meas_ID = meas_ID, meas_type = 'ray')
     
+    # Checking for radiosonde data
+    if args['radiosonde_filename'] == None:
+        nc_path_rs = radiosonde(args, time = sig_raw.time.values)
+        args['radiosonde_filename'] = os.path.basename(nc_path_rs)
+    else: nc_path_rs = None
+        
     # Making the raw SCC file
     make.rayleigh_file(meas_info = cfg.meas.copy(), 
                        channel_info = cfg.channels.copy(), 
@@ -110,31 +117,36 @@ def rayleigh(args):
     print('Succesfully generated a rayleigh QA file!')
     print('')
     
-    return(nc_path)
+    return([nc_path, nc_path_rs])
 
 def telecover(args):
     
-    path = os.path.join(args['parent_folder'],'tlc')
-    path_d = os.path.join(args['parent_folder'],'tlc','dark')
+    path_sec = args['telecover_sectors_folder']
+    path_rin = args['telecover_rings_folder']
+    path_drk = args['dark_folder']
+    path_cfg = args['config_file']
+
     file_format = args['file_format']
     mcode = args['measurement_identifier']
+    
     files_per_sector = args['files_per_sector']
     files_per_ring = args['files_per_ring']
 
+
     # Checking the telecover folder    
-    check_telecover(path, files_per_sector = files_per_sector, 
-                    files_per_ring = files_per_ring)
+    check_telecover_sec(path_sec, files_per_sector = files_per_sector)
+    check_telecover_rin(path_rin, files_per_ring = files_per_ring)
     
     # Reading of the configuration file    
-    cfg = config(path = args['config_file'])   
+    cfg = config(path = path_cfg)   
 
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
-        read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
+        read_files.dark(finput_drk = path_drk, file_format = file_format, mcode = mcode)
     
     # Read the files in the telecover folder
     sig_raw, shots, meas_info, channel_info, time_info = \
-        read_files.telecover(finput = path, file_format = file_format, mcode = mcode, files_per_sector = files_per_sector, files_per_ring = files_per_ring)
+        read_files.telecover(finput_sec = path_sec, finput_rin = path_rin, file_format = file_format, mcode = mcode, files_per_sector = files_per_sector, files_per_ring = files_per_ring)
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
@@ -212,13 +224,13 @@ def telecover(args):
 
 def polarization_calibration(args):
    
-    path = os.path.join(args['parent_folder'],'pcl')
-    path_d = os.path.join(args['parent_folder'],'pcl','dark')
+    path_p45 = args['pol_cal_p45_folder']
+    path_m45 = args['pol_cal_m45_folder']
+    path_stc = args['pol_cal_stc_folder']
+    path_drk = args['dark_folder']
+    
     file_format = args['file_format']
     mcode = args['measurement_identifier']
-    
-    # Checking the calibration folder    
-    check_polarization_calibration(path)
     
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])   
@@ -229,11 +241,11 @@ def polarization_calibration(args):
         
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
-        read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
+        read_files.dark(finput_drk = path_drk, file_format = file_format, mcode = mcode)
 
     # Read the files in the calibration folder
     sig_raw, shots, meas_info, channel_info, time_info = \
-        read_files.polarization_calibration(path, file_format = file_format, mcode = mcode)
+        read_files.polarization_calibration(finput_p45 = path_p45, finput_m45 = path_m45, finput_stc = path_stc, file_format = file_format, mcode = mcode)
 
     # Remove channels that should be excluded according to the configuration file
     if not isinstance(sig_raw_d,list):
@@ -315,7 +327,7 @@ def polarization_calibration(args):
 
 def dark(args):
    
-    path_d = os.path.join(args['parent_folder'],'drk')
+    path_drk = os.path.join(args['parent_folder'],'drk')
     file_format = args['file_format']
     mcode = args['measurement_identifier']
     
@@ -324,7 +336,7 @@ def dark(args):
 
     # Read the files in the dark folder
     sig_raw_d, shots_d, meas_info_d, channel_info_d, time_info_d  = \
-        read_files.dark(finput = path_d, file_format = file_format, mcode = mcode)
+        read_files.dark(finput_drk = path_drk, file_format = file_format, mcode = mcode)
 
     # Remove channels that should be excluded according to the configuration file
     sig_raw_d, shots_d, channel_info_d, cfg = \
@@ -377,9 +389,9 @@ def dark(args):
     
     return(nc_path)
 
-def radiosonde(args):
+def radiosonde(args, time):
    
-    path = os.path.join(args['parent_folder'],'rs')
+    path_rs = args['radiosonde_folder']
     
     delimiter = args['rsonde_delimiter']
     skip_header = args['rsonde_skip_header']
@@ -388,11 +400,14 @@ def radiosonde(args):
     units = args['rsonde_column_units']
     geodata = args['rsonde_geodata']
     
-    date, time, atmo = read_files.radiosonde(path, delimiter = delimiter, 
+    mtime = np.datetime64(time[0] + (time[-1] - time[0]) / 2., 'us').item()
+    
+    date, time, atmo = read_files.radiosonde(path_rs, delimiter = delimiter, 
                                              skip_header = skip_header, 
                                              skip_footer = skip_footer, 
                                              usecols = usecols,
-                                             units = units)
+                                             units = units,
+                                             mtime = mtime)
     # Reading of the configuration file    
     cfg = config(path = args['config_file'])
     
